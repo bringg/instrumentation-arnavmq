@@ -65,3 +65,5 @@ export const getServerPropertiesAttributes = (conn: amqp.Connection['connection'
   }
   return {};
 };
+
+export const INSTRUMENTATION_ARNAVMQ_VERSION = require('../version');

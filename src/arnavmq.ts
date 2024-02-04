@@ -17,6 +17,7 @@ import {
   getServerPropertiesAttributes,
   MESSAGE_PUBLISH_ROOT_SPAN,
   MESSAGE_PUBLISH_ATTEMPT_SPAN,
+  INSTRUMENTATION_ARNAVMQ_VERSION,
 } from './utils';
 import {
   AfterConnectInfo,
@@ -124,8 +125,7 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
   private _beforePublishCallback: BeforePublishHook;
 
   constructor(config?: ArnavmqInstrumentationConfig) {
-    // TODO: Generate a version file on ci to read the version from.
-    super('instrumentation-arnavmq', '0.0.1', config);
+    super('instrumentation-arnavmq', INSTRUMENTATION_ARNAVMQ_VERSION, config);
     this._patchedModule = false;
     this._beforeProcessMessageCallback = this.getBeforeProcessMessageHook();
     this._beforeRpcReplyCallback = this.getBeforeRpcReplyHook();

@@ -4,7 +4,8 @@
   "description": "OpenTelemetry automatic instrumentation for the `arnavmq` package",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run generate-version-file",
+    "generate-version-file": "node ./scripts/generate_version_file.js",
     "lint": "eslint . --ext .ts,.js && prettier -c .",
     "format": "eslint . --ext .ts,.js --fix && prettier --write ."
   },
