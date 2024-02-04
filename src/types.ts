@@ -4,9 +4,9 @@ import { Attributes, Span } from '@opentelemetry/api';
 import { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type * as amqp from 'amqplib';
 
-export type InstrumentedConnection = amqp.Connection & { [CONNECTION_ATTRIBUTES]: Attributes };
+export type InstrumentedConnection = { [CONNECTION_ATTRIBUTES]: Attributes };
 
-export type ConnectionOptions = {
+export type ConnectionConfig = {
   /** amqp connection string */
   host: string;
 
@@ -41,6 +41,8 @@ export type ConnectionOptions = {
     warn: LogFunction;
     error: LogFunction;
   };
+
+  hooks?: HooksConfig;
 };
 
 type LogEvent = {
@@ -51,24 +53,185 @@ type LogEvent = {
 
 type LogFunction = (e: LogEvent) => void;
 
-//
-// BASED ON
-// https://github.com/open-telemetry/opentelemetry-js-contrib/blob/c365375ce2d35c01df06c96a4faf8d5a5d9d1ec3/plugins/node/instrumentation-amqplib/src/types.ts
-//
-export interface PublishInfo {
-  moduleVersion: string | undefined;
-  /** The reply payload before serialization */
-  reply: any;
-  exchange?: string;
+export type Hooks = {
+  connection: ConnectionHooks;
+  consumer: ConsumerHooks;
+  producer: ProducerHooks;
+};
+
+interface ConnectionHooks {
+  beforeConnect(callback: BeforeConnectHook): void;
+  removeBeforeConnect(callback: BeforeConnectHook): void;
+  afterConnect(callback: AfterConnectHook): void;
+  removeAfterConnect(callback: AfterConnectHook): void;
+}
+
+interface ConsumerHooks {
+  beforeProcessMessage(callback: MaybeArray<BeforeProcessHook>): void;
+  removeBeforeProcessMessage(callback: MaybeArray<BeforeProcessHook>): void;
+
+  afterProcessMessage(callback: MaybeArray<AfterProcessHook>): void;
+  removeAfterProcessMessage(callback: MaybeArray<AfterProcessHook>): void;
+
+  beforeRpcReply(callback: MaybeArray<BeforeRpcReplyHook>): void;
+  removeBeforeRpcReply(callback: MaybeArray<BeforeRpcReplyHook>): void;
+
+  afterRpcReply(callback: AfterRpcHook): void;
+  removeAfterRpcReply(callback: AfterRpcHook): void;
+}
+
+interface ProducerHooks {
+  beforePublish(callback: MaybeArray<BeforePublishHook>): void;
+  removeBeforePublish(callback: MaybeArray<BeforePublishHook>): void;
+
+  afterPublish(callback: AfterPublishHook): void;
+  removeAfterPublish(callback: AfterPublishHook): void;
+}
+
+type MaybeArray<T> = T | T[];
+
+export type HooksConfig = {
+  connection?: {
+    beforeConnect?: MaybeArray<BeforeConnectHook>;
+    afterConnect?: MaybeArray<AfterConnectHook>;
+  };
+  consumer?: {
+    beforeProcessMessage?: MaybeArray<BeforeProcessHook>;
+    afterProcessMessage?: MaybeArray<AfterProcessHook>;
+    beforeRpcReply?: MaybeArray<BeforeRpcReplyHook>;
+    afterRpcReply?: MaybeArray<AfterRpcHook>;
+  };
+  producer?: {
+    beforePublish?: MaybeArray<BeforePublishHook>;
+    afterPublish?: MaybeArray<AfterPublishHook>;
+  };
+};
+
+export type ProduceSettings = amqp.MessageProperties & {
   routingKey?: string;
-  options?: amqp.Options.Publish;
+  rpc?: boolean;
+};
+
+export type AfterConnectHook = (
+  this: InstrumentedConnection,
+  e: {
+    config: ConnectionConfig;
+  } & (
+    | {
+        connection: amqp.Connection;
+        error: undefined;
+      }
+    | {
+        error: Error;
+      }
+  ),
+) => Promise<void>;
+
+type BeforeConnectHook = (e: { config: ConnectionConfig }) => Promise<void>;
+
+export type AfterRpcHook = (this: { connection: InstrumentedConnection }, e: RpcResultInfo) => Promise<void>;
+
+export type AfterPublishHook = (
+  this: {
+    connection: InstrumentedConnection;
+  },
+  e: PublishResultInfo,
+) => Promise<void>;
+
+type BeforeProcessHook = (
+  this: {
+    connection: InstrumentedConnection;
+  },
+  e: ConsumeInfo,
+) => Promise<void>;
+
+type AfterProcessHook = (
+  this: {
+    connection: InstrumentedConnection;
+  },
+  e: ConsumeInfo & {
+    error?: Error;
+    rejectError?: Error;
+    ackError?: Error;
+  },
+) => Promise<void>;
+
+type BeforeRpcReplyHook = (
+  this: {
+    connection: InstrumentedConnection;
+  },
+  e: RpcInfo,
+) => Promise<void>;
+
+type BeforePublishHook = (
+  this: {
+    connection: InstrumentedConnection;
+  },
+  e: PublishInfo,
+) => Promise<void>;
+
+export interface PublishInfo {
+  /** The queue or exchange to publish to */
+  queue: string;
+  /** The pre-serialized message to publish */
+  message: unknown;
+  /** The serialized message buffer */
+  parsedMessage: Buffer;
+  /**
+   * The publish properties and options.
+   * If a "routingKey" is specified, it serves as the queue while the "queue" option represents the exchange instead. Otherwise the default exchange is used.
+   */
+  properties: ProduceSettings;
+  /** The current retry attempt number */
+  currentRetry: number;
 }
 
 export interface ConsumeInfo {
-  moduleVersion: string | undefined;
-  /** The deserialized consumed payload */
-  body: any;
+  /** The consumed queue */
+  queue: string;
+  /** The raw amqplib message */
+  message: amqp.Message;
+  /** The deserialized message content */
+  content: unknown;
 }
+
+export interface RpcInfo {
+  /** The properties of the original message we reply to */
+  receiveProperties: amqp.MessageProperties;
+  /** The properties added to the reply message */
+  replyProperties: amqp.MessageProperties;
+  /** The queue that the original message was consumed from */
+  queue: string;
+  /** The value to send back, before serialization. Returned from the "subscribe" callback. */
+  reply: unknown;
+  /** The serialized reply buffer */
+  serializedReply: Buffer;
+  /** The error in case of returning an error reply */
+  error?: Error;
+}
+
+type RpcResultInfo = RpcInfo &
+  (
+    | {
+        error: Error;
+      }
+    | {
+        error: undefined;
+        written: boolean;
+      }
+  );
+
+type PublishResultInfo = PublishInfo &
+  (
+    | {
+        result: unknown;
+        error: undefined;
+      }
+    | {
+        error: Error;
+        shouldRetry: boolean;
+      }
+  );
 
 export interface ArnavmqPublishCustomAttributeFunction {
   (span: Span, publishInfo: PublishInfo): void;
@@ -76,6 +239,10 @@ export interface ArnavmqPublishCustomAttributeFunction {
 
 export interface ArnavmqConsumeCustomAttributeFunction {
   (span: Span, consumeInfo: ConsumeInfo): void;
+}
+
+export interface ArnavmqRpcResponseCustomAttributeFunction {
+  (span: Span, publishInfo: RpcInfo): void;
 }
 
 export interface ArnavmqInstrumentationConfig extends InstrumentationConfig {
@@ -86,5 +253,10 @@ export interface ArnavmqInstrumentationConfig extends InstrumentationConfig {
   subscribeHook?: ArnavmqConsumeCustomAttributeFunction;
 
   /** hook for adding custom attributes before returning RPC message to the producer */
-  rpcResponseHook?: ArnavmqPublishCustomAttributeFunction;
+  rpcResponseHook?: ArnavmqRpcResponseCustomAttributeFunction;
 }
+
+export type ArnavmqModule = (config: ConnectionConfig) => {
+  hooks: Hooks;
+  /** ... more stuff I don't need for instrumentation */
+};

@@ -12,28 +12,30 @@ registerInstrumentations({
   instrumentations: [
     new ArnavmqInstrumentation({
       subscribeHook: (span, info) => {
-        span.setAttribute('foo', info.body.foo);
+        const parsedContent = info.content as { request_id: string; foo: string };
+        span.setAttribute('request_id', parsedContent.request_id);
+        span.setAttribute('foo', parsedContent.foo);
         console.log(info);
       },
-      // publishHook: (span: Span, publishInfo: PublishInfo) => { },
-      // publishConfirmHook: (span: Span, publishConfirmedInto: PublishConfirmedInfo) => { },
-      // consumeHook: (span: Span, consumeInfo: ConsumeInfo) => { },
-      // consumeEndHook: (span: Span, consumeEndInfo: ConsumeEndInfo) => { },
     }),
   ],
 });
 
 const arnavmq = require('arnavmq')({ host: 'amqp://localhost' });
 
+function getMessage() {
+  return {
+    foo: 'bar',
+    request_id: randomUUID(),
+  };
+}
+
 async function main() {
   const queue = 'test-queue';
-  const message = {
-    foo: 'bar',
-  };
 
   let requestCounter = 1;
 
-  await arnavmq.subscribe(queue, (msg: typeof message, properties: unknown) => {
+  await arnavmq.subscribe(queue, (msg: unknown, properties: unknown) => {
     requestCounter = (requestCounter + 1) % 3;
     if (!requestCounter) {
       console.log('Throwing error on consume!', msg, properties);
@@ -45,7 +47,7 @@ async function main() {
 
   setInterval(async () => {
     try {
-      const res = await arnavmq.publish(queue, message, {
+      const res = await arnavmq.publish(queue, getMessage(), {
         rpc: !(requestCounter % 2),
         headers: { 'x-request-id': randomUUID() },
       });
@@ -53,7 +55,7 @@ async function main() {
     } catch (error) {
       console.log('Got error!', error);
     }
-  }, 5000);
+  }, 1000);
 }
 
 main();
