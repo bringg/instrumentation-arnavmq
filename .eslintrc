@@ -1,0 +1,20 @@
+{
+  "extends": ["airbnb-base", "airbnb-typescript/base", "eslint-config-prettier"],
+  "env": {
+    "node": true,
+    "mocha": true,
+    "es6": true,
+    "mongo": true
+  },
+  "rules": {
+    "no-await-in-loop": 0,
+    "comma-dangle": 0,
+    "max-classes-per-file": 0,
+    "max-len": ["error", { "code": 190, "ignoreComments": true, "ignoreUrls": true }],
+    "no-underscore-dangle": [1, { "allowAfterThis": true }],
+    "no-return-await": "off"
+  },
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  }
+}

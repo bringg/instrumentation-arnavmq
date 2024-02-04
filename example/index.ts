@@ -1,9 +1,9 @@
 import './bootstrap_opentelemetry';
 
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { ArnavmqInstrumentation } from '../src/arnavmq';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { randomUUID } from 'crypto';
+import ArnavmqInstrumentation from '../src/arnavmq';
 
 const provider = new NodeTracerProvider();
 provider.register();

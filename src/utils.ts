@@ -1,7 +1,6 @@
 import { Attributes } from '@opentelemetry/api';
-import { ConnectionConfig } from './types';
-
 import type * as amqp from 'amqplib';
+import { ConnectionConfig } from './types';
 
 export const CONNECTION_ATTRIBUTES = Symbol('opentelemetry.arnavmq.connection.attributes');
 export const MESSAGE_STORED_SPAN = Symbol('opentelemetry.arnavmq.message.stored-span');
@@ -23,6 +22,20 @@ export const DEFAULT_EXCHANGE_NAME = '(default exchange)';
 
 const AMQP = 'AMQP';
 
+function extractPort(url: URL, protocol: string) {
+  if (url.port.length) {
+    return Number(url.port);
+  }
+
+  if (protocol === AMQP) {
+    // AMQP default port
+    return 5672;
+  }
+
+  // AMQPS default port
+  return 5671;
+}
+
 export function getConnectionConfigAttributes(config: ConnectionConfig): Attributes {
   const hostUrl = new URL(config.host);
 
@@ -31,14 +44,13 @@ export function getConnectionConfigAttributes(config: ConnectionConfig): Attribu
   const protocolAttribute = hostUrl.protocol.length
     ? hostUrl.protocol.substring(0, hostUrl.protocol.length - 1).toUpperCase()
     : AMQP;
-  const portAttribute: number = hostUrl.port.length ? Number(hostUrl.port) : protocolAttribute === AMQP ? 5672 : 5671;
 
   const attributes: Attributes = {
     // The amqplib supports only the AMQP 0-9-1 protocol specification.
     'network.protocol.version': '0.9.1',
     'network.protocol.name': protocolAttribute,
     'server.address': hostUrl.hostname,
-    'server.port': portAttribute,
+    'server.port': extractPort(hostUrl, protocolAttribute),
   };
 
   return attributes;
@@ -50,7 +62,6 @@ export const getServerPropertiesAttributes = (conn: amqp.Connection['connection'
     return {
       'messaging.system': product,
     };
-  } else {
-    return {};
   }
+  return {};
 };

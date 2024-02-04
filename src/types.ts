@@ -1,8 +1,7 @@
-import { CONNECTION_ATTRIBUTES } from './utils';
-
 import { Attributes, Span } from '@opentelemetry/api';
 import { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type * as amqp from 'amqplib';
+import type { CONNECTION_ATTRIBUTES } from './utils';
 
 export type InstrumentedConnection = { [CONNECTION_ATTRIBUTES]: Attributes };
 
@@ -112,20 +111,7 @@ export type ProduceSettings = amqp.MessageProperties & {
   rpc?: boolean;
 };
 
-export type AfterConnectHook = (
-  this: InstrumentedConnection,
-  e: {
-    config: ConnectionConfig;
-  } & (
-    | {
-        connection: amqp.Connection;
-        error: undefined;
-      }
-    | {
-        error: Error;
-      }
-  ),
-) => Promise<void>;
+export type AfterConnectHook = (this: InstrumentedConnection, e: AfterConnectInfo) => Promise<void>;
 
 type BeforeConnectHook = (e: { config: ConnectionConfig }) => Promise<void>;
 
@@ -138,37 +124,45 @@ export type AfterPublishHook = (
   e: PublishResultInfo,
 ) => Promise<void>;
 
-type BeforeProcessHook = (
+export type BeforeProcessHook = (
   this: {
     connection: InstrumentedConnection;
   },
   e: ConsumeInfo,
 ) => Promise<void>;
 
-type AfterProcessHook = (
+export type AfterProcessHook = (
   this: {
     connection: InstrumentedConnection;
   },
-  e: ConsumeInfo & {
-    error?: Error;
-    rejectError?: Error;
-    ackError?: Error;
-  },
+  e: AfterConsumeInfo,
 ) => Promise<void>;
 
-type BeforeRpcReplyHook = (
+export type BeforeRpcReplyHook = (
   this: {
     connection: InstrumentedConnection;
   },
   e: RpcInfo,
 ) => Promise<void>;
 
-type BeforePublishHook = (
+export type BeforePublishHook = (
   this: {
     connection: InstrumentedConnection;
   },
   e: PublishInfo,
 ) => Promise<void>;
+
+export type AfterConnectInfo = {
+  config: ConnectionConfig;
+} & (
+  | {
+      connection: amqp.Connection;
+      error: undefined;
+    }
+  | {
+      error: Error;
+    }
+);
 
 export interface PublishInfo {
   /** The queue or exchange to publish to */
@@ -195,6 +189,12 @@ export interface ConsumeInfo {
   content: unknown;
 }
 
+export type AfterConsumeInfo = ConsumeInfo & {
+  error?: Error;
+  rejectError?: Error;
+  ackError?: Error;
+};
+
 export interface RpcInfo {
   /** The properties of the original message we reply to */
   receiveProperties: amqp.MessageProperties;
@@ -210,7 +210,7 @@ export interface RpcInfo {
   error?: Error;
 }
 
-type RpcResultInfo = RpcInfo &
+export type RpcResultInfo = RpcInfo &
   (
     | {
         error: Error;
@@ -221,7 +221,7 @@ type RpcResultInfo = RpcInfo &
       }
   );
 
-type PublishResultInfo = PublishInfo &
+export type PublishResultInfo = PublishInfo &
   (
     | {
         result: unknown;

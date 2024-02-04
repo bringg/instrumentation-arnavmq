@@ -2,21 +2,34 @@
   "name": "instrumentation-arnavmq",
   "version": "1.0.0",
   "description": "OpenTelemetry automatic instrumentation for the `arnavmq` package",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "lint": "eslint . --ext .ts,.js && prettier -c .",
+    "format": "eslint . --ext .ts,.js --fix && prettier --write ."
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Bring",
+  "license": "MIT",
+  "files": [
+    "./dist"
+  ],
   "dependencies": {
     "@opentelemetry/instrumentation": "^0.46.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.7.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.47.0",
     "@opentelemetry/sdk-node": "^0.47.0",
     "@opentelemetry/sdk-trace-node": "^1.20.0",
     "@types/amqplib": "^0.10.4",
+    "@typescript-eslint/eslint-plugin": "^6.20.0",
+    "@typescript-eslint/parser": "^6.20.0",
     "arnavmq": "^0.15.2",
+    "eslint": "^8.56.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^17.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
     "prettier": "^3.1.1",
     "typescript": "^5.3.3"
   },
