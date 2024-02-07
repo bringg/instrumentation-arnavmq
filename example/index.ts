@@ -35,12 +35,17 @@ async function main() {
 
   let requestCounter = 1;
 
-  await arnavmq.subscribe(queue, (msg: unknown, properties: unknown) => {
+  await arnavmq.subscribe(queue, async (msg: unknown, properties: unknown) => {
     requestCounter = (requestCounter + 1) % 3;
     if (!requestCounter) {
       console.log('Throwing error on consume!', msg, properties);
       throw new Error('consume error');
     }
+
+    await new Promise((res) => {
+      console.log('simulating work...');
+      setTimeout(res, 2000);
+    });
     console.log('Got message!', msg, properties);
     return 'Returned something!';
   });

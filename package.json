@@ -4,10 +4,12 @@
   "description": "OpenTelemetry automatic instrumentation for the `arnavmq` package",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc && npm run generate-version-file",
+    "build": "npm run generate-version-file && tsc",
     "generate-version-file": "node ./scripts/generate_version_file.js",
     "lint": "eslint . --ext .ts,.js && prettier -c .",
-    "format": "eslint . --ext .ts,.js --fix && prettier --write ."
+    "format": "eslint . --ext .ts,.js --fix && prettier --write .",
+    "test": "dot-only-hunter test && nyc ts-mocha",
+    "test:docker:run": "docker run -d --name arnavmq-tests -p 5672:5672 rabbitmq:3.8-alpine --network=bridge"
   },
   "author": "Bring",
   "license": "MIT",
@@ -15,23 +17,31 @@
     "./dist"
   ],
   "dependencies": {
-    "@opentelemetry/instrumentation": "^0.46.0"
+    "@opentelemetry/instrumentation": "^0.48.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.7.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.47.0",
-    "@opentelemetry/sdk-node": "^0.47.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.48.0",
+    "@opentelemetry/sdk-metrics": "^1.21.0",
+    "@opentelemetry/sdk-node": "^0.48.0",
     "@opentelemetry/sdk-trace-node": "^1.20.0",
     "@types/amqplib": "^0.10.4",
-    "@typescript-eslint/eslint-plugin": "^6.20.0",
-    "@typescript-eslint/parser": "^6.20.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "arnavmq": "^0.15.2",
+    "chai": "^5.0.3",
+    "dot-only-hunter": "^1.0.3",
     "eslint": "^8.56.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-airbnb-typescript": "^17.1.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
-    "prettier": "^3.1.1",
+    "mocha": "^10.2.0",
+    "nyc": "^15.1.0",
+    "prettier": "^3.2.5",
+    "ts-mocha": "^10.0.0",
     "typescript": "^5.3.3"
   },
   "peerDependencies": {

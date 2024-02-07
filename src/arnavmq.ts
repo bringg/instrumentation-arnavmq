@@ -176,7 +176,7 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
           kind: SpanKind.CONSUMER,
           attributes: {
             ...this.connection[CONNECTION_ATTRIBUTES],
-            'messaging.destination.name': e.message.fields.exchange,
+            'messaging.destination.name': e.message.fields.exchange || DEFAULT_EXCHANGE_NAME,
             'messaging.rabbitmq.destination.routing_key': e.queue,
             'messaging.message.id': msgProperties.messageId,
             // Note: According to the specification the operation should be called 'deliver' since it triggers a registered callback, but 'deliver' is confusing for receiving a message.
@@ -271,7 +271,13 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
 
       let parentSpan = msgProperties[MESSAGE_PUBLISH_ROOT_SPAN];
       if (!parentSpan) {
-        parentSpan = self.tracer.startSpan(`${exchange} -> ${queue} send${msgProperties.rpc ? ' rpc' : ''}`, {
+        // In case the underlying connection wasn't initialized yet, initialize it (could happen if this is the first time it is accessed)
+        if (!this.connection[CONNECTION_ATTRIBUTES]) {
+          await this.connection.getConnection();
+        }
+
+        // The root span.
+        parentSpan = self.tracer.startSpan(`${exchange} -> ${queue} create${msgProperties.rpc ? ' rpc' : ''}`, {
           kind: SpanKind.CLIENT,
           attributes: {
             ...this.connection[CONNECTION_ATTRIBUTES],
@@ -280,7 +286,8 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
             'messaging.rabbitmq.message.rpc': !!msgProperties.rpc,
             'messaging.message.conversation_id': msgProperties.correlationId,
             'messaging.message.id': msgProperties.messageId,
-            'messaging.operation': 'publish',
+            // The entire publish operation is 'create', with each underlying actual message send and potential retries is a separate child 'publish'.
+            'messaging.operation': 'create',
             'messaging.message.body.size': e.parsedMessage.byteLength,
           },
         });
@@ -295,6 +302,7 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
           kind: SpanKind.PRODUCER,
           attributes: {
             'messaging.rabbitmq.message.retry_number': e.currentRetry,
+            'messaging.operation': 'publish',
           },
         },
         parentContext,
@@ -305,7 +313,7 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
 
       if (config.publishHook) {
         safeExecuteInTheMiddle(
-          () => config.publishHook!(span, e),
+          () => config.publishHook!(parentSpan, e),
           (err) => {
             if (err) {
               diag.error('arnavmq instrumentation: publishHook error', err);

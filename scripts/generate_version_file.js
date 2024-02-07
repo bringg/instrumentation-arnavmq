@@ -1,4 +1,4 @@
 const fs = require('fs');
 const packageFile = require('../package.json');
 
-fs.writeFileSync(`${process.cwd()}/dist/version.js`, `module.exports = '${packageFile.version}'`);
+fs.writeFileSync(`${process.cwd()}/src/version.ts`, `module.exports = '${packageFile.version}'`);

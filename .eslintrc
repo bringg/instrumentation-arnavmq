@@ -3,8 +3,7 @@
   "env": {
     "node": true,
     "mocha": true,
-    "es6": true,
-    "mongo": true
+    "es6": true
   },
   "rules": {
     "no-await-in-loop": 0,
@@ -15,6 +14,6 @@
     "no-return-await": "off"
   },
   "parserOptions": {
-    "project": "./tsconfig.json"
+    "project": ["./tsconfig.json", "./test/tsconfig.json"]
   }
 }

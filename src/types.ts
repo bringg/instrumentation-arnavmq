@@ -3,7 +3,10 @@ import { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type * as amqp from 'amqplib';
 import type { CONNECTION_ATTRIBUTES } from './utils';
 
-export type InstrumentedConnection = { [CONNECTION_ATTRIBUTES]: Attributes };
+export type InstrumentedConnection = {
+  [CONNECTION_ATTRIBUTES]: Attributes;
+  getConnection: () => Promise<amqp.Connection>;
+};
 
 export type ConnectionConfig = {
   /** amqp connection string */
