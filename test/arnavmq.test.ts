@@ -5,7 +5,7 @@ import { DEFAULT_EXCHANGE_NAME, RPC_REPLY_DESTINATION_NAME } from '../src/utils'
 
 const arnavmq = require('arnavmq')({ host: 'amqp://localhost' });
 
-describe('test the tests run', function () {
+describe('arnavmq', function () {
   let testSpans: TestSpans;
   let queue: string;
 
