@@ -17,7 +17,6 @@ import {
   getServerPropertiesAttributes,
   MESSAGE_PUBLISH_ROOT_SPAN,
   MESSAGE_PUBLISH_ATTEMPT_SPAN,
-  INSTRUMENTATION_ARNAVMQ_VERSION,
 } from './utils';
 import {
   AfterConnectInfo,
@@ -32,6 +31,7 @@ import {
   PublishResultInfo,
   RpcResultInfo,
 } from './types';
+import INSTRUMENTATION_ARNAVMQ_VERSION from '../version';
 
 async function afterConnectCallback(this: InstrumentedConnection, e: AfterConnectInfo) {
   if (e.error) {

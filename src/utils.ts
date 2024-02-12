@@ -65,8 +65,3 @@ export const getServerPropertiesAttributes = (conn: amqp.Connection['connection'
   }
   return {};
 };
-
-// The version file is generated on build and simply exports the version string of the package.json
-// See scripts/generate_version_file.js
-// eslint-disable-next-line
-export const INSTRUMENTATION_ARNAVMQ_VERSION = require('./version');

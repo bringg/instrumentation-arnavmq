@@ -20,7 +20,8 @@
     "./dist"
   ],
   "dependencies": {
-    "@opentelemetry/instrumentation": "^0.48.0"
+    "@opentelemetry/instrumentation": "^0.48.0",
+    "pkginfo": "^0.4.1"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.7.0",
@@ -31,6 +32,7 @@
     "@types/amqplib": "^0.10.4",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
+    "@types/pkginfo": "^0.4.3",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "arnavmq": "^0.15.2",

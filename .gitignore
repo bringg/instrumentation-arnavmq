@@ -2,6 +2,3 @@ dist/
 node_modules/
 .vscode/
 .nyc_output/
-
-# Generated version file.
-/src/version.ts
