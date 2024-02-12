@@ -7,17 +7,16 @@ import {
 import { Span, SpanKind, SpanStatusCode, context, diag, propagation, trace } from '@opentelemetry/api';
 
 import type * as amqp from 'amqplib';
+import { getConnectionConfigAttributes, getServerPropertiesAttributes } from './utils';
 import {
   CONNECTION_ATTRIBUTES,
   DEFAULT_EXCHANGE_NAME,
   MESSAGE_STORED_SPAN,
   MESSAGE_RPC_REPLY_STORED_SPAN,
   RPC_REPLY_DESTINATION_NAME,
-  getConnectionConfigAttributes,
-  getServerPropertiesAttributes,
   MESSAGE_PUBLISH_ROOT_SPAN,
   MESSAGE_PUBLISH_ATTEMPT_SPAN,
-} from './utils';
+} from './consts';
 import {
   AfterConnectInfo,
   AfterConsumeInfo,

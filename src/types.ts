@@ -1,7 +1,7 @@
 import { Attributes, Span } from '@opentelemetry/api';
 import { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import type * as amqp from 'amqplib';
-import type { CONNECTION_ATTRIBUTES } from './utils';
+import type { CONNECTION_ATTRIBUTES } from './consts';
 
 export type InstrumentedConnection = {
   [CONNECTION_ATTRIBUTES]: Attributes;
