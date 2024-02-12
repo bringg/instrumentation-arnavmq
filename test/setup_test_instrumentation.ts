@@ -4,7 +4,7 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import ArnavmqInstrumentation from '../src/arnavmq';
 import { ConsumeInfo, PublishInfo, RpcInfo } from '../src/types';
 
-type TestableSpan = Span & {
+export type TestableSpan = Span & {
   attributes: Attributes;
   name: string;
   ended: boolean;
@@ -41,13 +41,13 @@ registerInstrumentations({
   instrumentations: [
     new ArnavmqInstrumentation({
       subscribeHook: (span, info) => {
-        spans.get(info.queue)!.subscribe.push({ span, info });
+        spans.get(info.queue)!.subscribe.push({ span: span as TestableSpan, info });
       },
       publishHook: (span, info) => {
-        spans.get(info.queue)!.publish.push({ span, info });
+        spans.get(info.queue)!.publish.push({ span: span as TestableSpan, info });
       },
       rpcResponseHook: (span, info) => {
-        spans.get(info.queue)!.rpc.push({ span, info });
+        spans.get(info.queue)!.rpc.push({ span: span as TestableSpan, info });
       },
     }),
   ],

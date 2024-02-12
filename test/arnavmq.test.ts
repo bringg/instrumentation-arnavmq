@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
-import { SpanStatusCode } from '@opentelemetry/api';
 import { resetSpans, getSpans, TestSpans } from './setup_test_instrumentation';
-import { DEFAULT_EXCHANGE_NAME, RPC_REPLY_DESTINATION_NAME } from '../src/utils';
+import assertSpanAttributes from './assert_span_attributes';
+import { DEFAULT_EXCHANGE_NAME, RPC_REPLY_DESTINATION_NAME } from '../src/consts';
 
 const arnavmq = require('arnavmq')({ host: 'amqp://localhost' });
 
@@ -32,15 +32,6 @@ describe('arnavmq', function () {
     });
 
     const publishOptions = { messageId: randomUUID() };
-    const expectedBaseAttributes = {
-      'network.protocol.version': '0.9.1',
-      'network.protocol.name': 'AMQP',
-      'server.address': 'localhost',
-      'server.port': 5672,
-      'messaging.system': 'rabbitmq',
-      'messaging.destination.name': DEFAULT_EXCHANGE_NAME,
-    };
-
     await arnavmq.publish(queue, 'test message', publishOptions);
     const received = await receivedPromise;
 
@@ -48,35 +39,24 @@ describe('arnavmq', function () {
 
     // Check publish span
     expect(testSpans.publish).to.have.lengthOf(1);
-    const publishSpan = testSpans.publish[0].span;
-    const publishSpanAttributes = publishSpan.attributes;
     const publishInfo = testSpans.publish[0].info;
-    expect(publishSpanAttributes).to.deep.equal({
-      ...expectedBaseAttributes,
-      'messaging.rabbitmq.destination.routing_key': queue,
-      'messaging.message.id': publishOptions.messageId,
-      'messaging.operation': 'create',
-      'messaging.rabbitmq.message.rpc': false,
-      'messaging.message.body.size': publishInfo.parsedMessage.byteLength,
+    assertSpanAttributes(testSpans.publish[0].span, queue, 'create', publishOptions, {
+      bodySize: publishInfo.parsedMessage.byteLength,
+      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} create`,
     });
-    expect(publishInfo.properties.correlationId).to.be.undefined;
-    expect(publishSpan.ended).to.be.true;
-    expect(publishSpan.name).to.equal(`${DEFAULT_EXCHANGE_NAME} -> ${queue} create`);
 
     // Check subscribe span
     expect(testSpans.subscribe).to.have.lengthOf(1);
-    const receiveSpan = testSpans.subscribe[0].span;
-    const receiveSpanAttributes = receiveSpan.attributes;
     const receiveInfo = testSpans.subscribe[0].info;
-    expect(receiveSpanAttributes).to.deep.equal({
-      ...expectedBaseAttributes,
-      'messaging.operation': 'receive',
-      'messaging.rabbitmq.destination.routing_key': queue,
-      'messaging.message.id': publishOptions.messageId,
-      'messaging.message.body.size': receiveInfo.message.content.byteLength,
+    // Wait for the next event loop just in case of a race where the "subscribe callback" finished but the "subscriber" hasn't ended the span yet, failing the `expect(span.ended)` check. It happens.
+    await new Promise<unknown>((res) => {
+      setImmediate(res);
     });
-    expect(publishSpan.ended).to.be.true;
-    expect(receiveSpan.name).to.equal(`${queue} receive`);
+    assertSpanAttributes(testSpans.subscribe[0].span, queue, 'receive', publishOptions, {
+      bodySize: receiveInfo.message.content.byteLength,
+      name: `${queue} receive`,
+    });
+
     expect(receiveInfo.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
 
     // Check RPC reply span did not start
@@ -93,14 +73,6 @@ describe('arnavmq', function () {
       return 'result!';
     });
     const publishOptions = { rpc: true, messageId: randomUUID() };
-    const expectedBaseAttributes = {
-      'network.protocol.version': '0.9.1',
-      'network.protocol.name': 'AMQP',
-      'server.address': 'localhost',
-      'server.port': 5672,
-      'messaging.system': 'rabbitmq',
-      'messaging.destination.name': DEFAULT_EXCHANGE_NAME,
-    };
 
     const response = await arnavmq.publish(queue, 'test message', publishOptions);
     const received = await receivedPromise;
@@ -110,55 +82,40 @@ describe('arnavmq', function () {
 
     // Check publish span
     expect(testSpans.publish).to.have.lengthOf(1);
-    const publishSpan = testSpans.publish[0].span;
-    const publishSpanAttributes = publishSpan.attributes;
     const publishInfo = testSpans.publish[0].info;
-    expect(publishSpanAttributes).to.deep.equal({
-      ...expectedBaseAttributes,
-      'messaging.rabbitmq.destination.routing_key': queue,
-      'messaging.rabbitmq.message.rpc': true,
-      'messaging.message.id': publishOptions.messageId,
-      'messaging.operation': 'create',
-      'messaging.message.body.size': publishInfo.parsedMessage.byteLength,
-      'messaging.message.conversation_id': publishInfo.properties.correlationId,
+    assertSpanAttributes(testSpans.publish[0].span, queue, 'create', publishOptions, {
+      bodySize: publishInfo.parsedMessage.byteLength,
+      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} create rpc`,
+      correlationId: publishInfo.properties.correlationId,
     });
-    expect(publishInfo.properties.correlationId).to.be.a('string').and.have.length.greaterThan(0);
-    expect(publishSpan.ended).to.be.true;
-    expect(publishSpan.name).to.equal(`${DEFAULT_EXCHANGE_NAME} -> ${queue} create rpc`);
 
     // Check subscribe span
     expect(testSpans.subscribe).to.have.lengthOf(1);
     const receiveSpan = testSpans.subscribe[0].span;
-    const receiveSpanAttributes = receiveSpan.attributes;
     const receiveInfo = testSpans.subscribe[0].info;
-    expect(receiveSpanAttributes).to.deep.equal({
-      ...expectedBaseAttributes,
-      'messaging.operation': 'receive',
-      'messaging.rabbitmq.destination.routing_key': queue,
-      'messaging.message.conversation_id': receiveInfo.message.properties.correlationId,
-      'messaging.message.id': publishOptions.messageId,
-      'messaging.message.body.size': receiveInfo.message.content.byteLength,
+    assertSpanAttributes(receiveSpan, queue, 'receive', publishOptions, {
+      name: `${queue} receive`,
+      bodySize: receiveInfo.message.content.byteLength,
+      correlationId: receiveInfo.message.properties.correlationId,
     });
-    expect(publishSpan.ended).to.be.true;
-    expect(receiveSpan.name).to.equal(`${queue} receive`);
     expect(receiveInfo.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
 
     // Check RPC reply span
     expect(testSpans.rpc).to.have.lengthOf(1);
-    const rpcSpan = testSpans.rpc[0].span;
-    const rpcSpanAttributes = rpcSpan.attributes;
     const rpcInfo = testSpans.rpc[0].info;
-    expect(rpcSpanAttributes).to.deep.equal({
-      ...expectedBaseAttributes,
-      'messaging.operation': 'publish',
-      'messaging.rabbitmq.destination.routing_key': publishInfo.properties.replyTo,
-      'messaging.destination.temporary': true,
-      'messaging.message.conversation_id': rpcInfo.receiveProperties.correlationId,
-      'messaging.message.body.size': rpcInfo.serializedReply.byteLength,
-    });
-    expect(rpcSpan.ended).to.be.true;
-    expect(rpcSpan.name).to.equal(`${queue} -> ${RPC_REPLY_DESTINATION_NAME} publish`);
-    expect(rpcSpan.parentSpanId).to.equal(receiveSpan.spanContext().spanId);
+    assertSpanAttributes(
+      testSpans.rpc[0].span,
+      publishInfo.properties.replyTo,
+      'publish',
+      { rpc: true },
+      {
+        name: `${queue} -> ${RPC_REPLY_DESTINATION_NAME} publish`,
+        bodySize: rpcInfo.serializedReply.byteLength,
+        correlationId: rpcInfo.receiveProperties.correlationId,
+        temporary: true,
+        parent: receiveSpan.spanContext().spanId,
+      },
+    );
 
     // All spans should have the same correlation id.
     expect(rpcInfo.receiveProperties.correlationId)
@@ -184,14 +141,6 @@ describe('arnavmq', function () {
       throw new Error(`Test reject ${attempt}`);
     });
     const publishOptions = { rpc: true, messageId: randomUUID() };
-    const expectedBaseAttributes = {
-      'network.protocol.version': '0.9.1',
-      'network.protocol.name': 'AMQP',
-      'server.address': 'localhost',
-      'server.port': 5672,
-      'messaging.system': 'rabbitmq',
-      'messaging.destination.name': DEFAULT_EXCHANGE_NAME,
-    };
 
     const response = await arnavmq.publish(queue, 'test message', publishOptions);
     const received = await receivedPromise;
@@ -201,72 +150,55 @@ describe('arnavmq', function () {
 
     // Check publish span
     expect(testSpans.publish).to.have.lengthOf(1);
-    const publishSpan = testSpans.publish[0].span;
-    const publishSpanAttributes = publishSpan.attributes;
     const publishInfo = testSpans.publish[0].info;
-    expect(publishSpanAttributes).to.deep.equal({
-      ...expectedBaseAttributes,
-      'messaging.rabbitmq.destination.routing_key': queue,
-      'messaging.rabbitmq.message.rpc': true,
-      'messaging.message.id': publishOptions.messageId,
-      'messaging.operation': 'create',
-      'messaging.message.body.size': publishInfo.parsedMessage.byteLength,
-      'messaging.message.conversation_id': publishInfo.properties.correlationId,
+    assertSpanAttributes(testSpans.publish[0].span, queue, 'create', publishOptions, {
+      bodySize: publishInfo.parsedMessage.byteLength,
+      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} create rpc`,
+      correlationId: publishInfo.properties.correlationId,
     });
-    expect(publishInfo.properties.correlationId).to.be.a('string').and.have.length.greaterThan(0);
-    expect(publishSpan.ended).to.be.true;
-    expect(publishSpan.name).to.equal(`${DEFAULT_EXCHANGE_NAME} -> ${queue} create rpc`);
 
     // Check subscribe span
     expect(testSpans.subscribe).to.have.lengthOf(expectedAttempts);
-    testSpans.subscribe.forEach((spanDetails) => {
-      const receiveSpan = spanDetails.span;
-      const receiveSpanAttributes = receiveSpan.attributes;
-      const receiveInfo = spanDetails.info;
-      expect(receiveSpanAttributes).to.deep.equal({
-        ...expectedBaseAttributes,
-        'messaging.operation': 'receive',
-        'messaging.rabbitmq.destination.routing_key': queue,
-        'messaging.message.conversation_id': receiveInfo.message.properties.correlationId,
-        'messaging.message.id': publishOptions.messageId,
-        'messaging.message.body.size': receiveInfo.message.content.byteLength,
-      });
-      expect(publishSpan.ended).to.be.true;
-      expect(receiveSpan.name).to.equal(`${queue} receive`);
-      expect(receiveInfo.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
+
+    const successReceive = testSpans.subscribe[testSpans.subscribe.length - 1];
+    assertSpanAttributes(successReceive.span, queue, 'receive', publishOptions, {
+      name: `${queue} receive`,
+      bodySize: successReceive.info.message.content.byteLength,
+      correlationId: successReceive.info.message.properties.correlationId,
     });
-    const failedAttempts = testSpans.subscribe.slice(0, -1);
-    expect(failedAttempts).to.have.lengthOf(expectedAttempts - 1);
-    failedAttempts.forEach((failedAttempt, i) => {
-      expect(failedAttempt.span.status.code).to.equal(SpanStatusCode.ERROR);
-      const expectedErrorMessage = `Test reject ${i + 1}`;
-      expect(failedAttempt.span.status.message).to.include(expectedErrorMessage);
-      expect(failedAttempt.span.events).to.have.lengthOf(1);
-      expect(failedAttempt.span.events[0].attributes['exception.message']).to.equal(expectedErrorMessage);
+
+    const failedReceives = testSpans.subscribe.slice(0, -1);
+    expect(failedReceives).to.have.lengthOf(expectedAttempts - 1);
+    failedReceives.forEach((failedReceive, i) => {
+      assertSpanAttributes(failedReceive.span, queue, 'receive', publishOptions, {
+        name: `${queue} receive`,
+        bodySize: failedReceive.info.message.content.byteLength,
+        correlationId: failedReceive.info.message.properties.correlationId,
+        error: `Test reject ${i + 1}`,
+      });
     });
 
     // Check RPC reply span
     expect(testSpans.rpc).to.have.lengthOf(1);
-    const rpcSpan = testSpans.rpc[0].span;
-    const rpcSpanAttributes = rpcSpan.attributes;
     const rpcInfo = testSpans.rpc[0].info;
-    expect(rpcSpanAttributes).to.deep.equal({
-      ...expectedBaseAttributes,
-      'messaging.operation': 'publish',
-      'messaging.rabbitmq.destination.routing_key': publishInfo.properties.replyTo,
-      'messaging.destination.temporary': true,
-      'messaging.message.conversation_id': rpcInfo.receiveProperties.correlationId,
-      'messaging.message.body.size': rpcInfo.serializedReply.byteLength,
-    });
-    expect(rpcSpan.ended).to.be.true;
-    expect(rpcSpan.name).to.equal(`${queue} -> ${RPC_REPLY_DESTINATION_NAME} publish`);
-    const lastProcessSpanDetails = testSpans.subscribe[2];
-    expect(rpcSpan.parentSpanId).to.equal(lastProcessSpanDetails.span.spanContext().spanId);
+    assertSpanAttributes(
+      testSpans.rpc[0].span,
+      publishInfo.properties.replyTo,
+      'publish',
+      { rpc: true },
+      {
+        name: `${queue} -> ${RPC_REPLY_DESTINATION_NAME} publish`,
+        bodySize: rpcInfo.serializedReply.byteLength,
+        correlationId: rpcInfo.receiveProperties.correlationId,
+        temporary: true,
+        parent: successReceive.span.spanContext().spanId,
+      },
+    );
 
     // All spans should have the same correlation id.
     expect(rpcInfo.receiveProperties.correlationId)
       .to.equal(rpcInfo.replyProperties.correlationId)
       .and.equal(publishInfo.properties.correlationId)
-      .and.equal(lastProcessSpanDetails.info.message.properties.correlationId);
+      .and.equal(successReceive.info.message.properties.correlationId);
   });
 });
