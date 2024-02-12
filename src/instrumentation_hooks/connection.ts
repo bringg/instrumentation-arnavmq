@@ -1,7 +1,7 @@
 import { Attributes } from '@opentelemetry/api';
 import type * as amqp from 'amqplib';
-import { ConnectionConfig } from './types';
-import { AMQP } from './consts';
+import { CONNECTION_ATTRIBUTES, AMQP } from '../consts';
+import { AfterConnectInfo, ConnectionConfig, InstrumentedConnection } from '../types';
 
 function extractPort(url: URL, protocol: string) {
   if (url.port.length) {
@@ -17,7 +17,7 @@ function extractPort(url: URL, protocol: string) {
   return 5671;
 }
 
-export function getConnectionConfigAttributes(config: ConnectionConfig): Attributes {
+function getConnectionConfigAttributes(config: ConnectionConfig): Attributes {
   const hostUrl = new URL(config.host);
 
   // Trim the ':' from the url protocol and uppercase.
@@ -37,7 +37,7 @@ export function getConnectionConfigAttributes(config: ConnectionConfig): Attribu
   return attributes;
 }
 
-export const getServerPropertiesAttributes = (conn: amqp.Connection['connection']): Attributes => {
+const getServerPropertiesAttributes = (conn: amqp.Connection['connection']): Attributes => {
   const product = conn.serverProperties.product?.toLowerCase?.();
   if (product) {
     return {
@@ -46,3 +46,13 @@ export const getServerPropertiesAttributes = (conn: amqp.Connection['connection'
   }
   return {};
 };
+
+export default async function afterConnectCallback(this: InstrumentedConnection, e: AfterConnectInfo) {
+  if (e.error) {
+    return;
+  }
+
+  const optionsAttributes = getConnectionConfigAttributes(e.config);
+  const serverPropertiesAttributes = getServerPropertiesAttributes(e.connection.connection);
+  this[CONNECTION_ATTRIBUTES] = { ...optionsAttributes, ...serverPropertiesAttributes };
+}
