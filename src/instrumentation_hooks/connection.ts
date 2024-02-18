@@ -18,7 +18,7 @@ function extractPort(url: URL, protocol: string) {
 }
 
 function getConnectionConfigAttributes(config: ConnectionConfig): Attributes {
-  const hostUrl = new URL(config.host);
+  const hostUrl = new URL(config.host as string);
 
   // Trim the ':' from the url protocol and uppercase.
   // Should be either AMQP or AMQPS

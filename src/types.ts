@@ -9,42 +9,40 @@ export type InstrumentedConnection = {
 };
 
 export type ConnectionConfig = {
-  /** amqp connection string */
-  host: string;
+  /** amqp connection string - defaults to 'amqp://localhost' */
+  host?: string;
 
-  /** number of fetched messages at once on the channel */
-  prefetch: number;
+  /** number of fetched messages at once on the channel - defaults to 5 */
+  prefetch?: number;
 
-  /** requeue put back message into the broker if consumer crashes/trigger exception */
-  requeue: boolean;
+  /** requeue put back message into the broker if consumer crashes/trigger exception - defaults to true */
+  requeue?: boolean;
 
-  /** time between two reconnect (ms) */
-  timeout: number;
+  /** time between two reconnect (ms) - defaults to 1000 */
+  timeout?: number;
 
-  /** the maximum number of retries when trying to send a message before throwing error when failing. If set to '0' will not retry. If set to less then '0', will retry indefinitely. */
-  producerMaxRetries: number;
+  /** the maximum number of retries when trying to send a message before throwing error when failing. If set to '0' will not retry. If set to less then '0', will retry indefinitely. Defaults to -1 */
+  producerMaxRetries?: number;
 
-  /** default timeout for RPC calls. If set to '0' there will be none. */
-  rpcTimeout: number;
+  /** default timeout for RPC calls. If set to '0' there will be none. Defaults to 15000 */
+  rpcTimeout?: number;
 
   /**
-   * suffix all queues names
+   * Suffix all queues names. Defaults to empty string.
    * @example service-something with suffix :ci becomes service-something:ci etc.
    */
   consumerSuffix: string;
 
-  /** generate a hostname so we can track this connection on the broker (rabbitmq management plugin) */
-  hostname: string;
+  /** generate a hostname so we can track this connection on the broker (rabbitmq management plugin) - defaults to host from environment or random uuid */
+  hostname?: string;
 
   /** A logger object with a log function for each of the log levels ("debug", "info", "warn", or "error"). */
-  logger: {
+  logger?: {
     debug: LogFunction;
     info: LogFunction;
     warn: LogFunction;
     error: LogFunction;
   };
-
-  hooks?: HooksConfig;
 };
 
 type LogEvent = {
