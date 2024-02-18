@@ -19,7 +19,7 @@ import {
 
 export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforeProcessHook {
   return async function beforeProcessMessage(e) {
-    const message = e.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
+    const message = e.action.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
     const msgProperties = message.properties;
     const { headers } = msgProperties;
     const parentContext = propagation.extract(context.active(), headers);
@@ -30,7 +30,7 @@ export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig
         kind: SpanKind.CONSUMER,
         attributes: {
           ...this.connection[CONNECTION_ATTRIBUTES],
-          'messaging.destination.name': e.message.fields.exchange || DEFAULT_EXCHANGE_NAME,
+          'messaging.destination.name': e.action.message.fields.exchange || DEFAULT_EXCHANGE_NAME,
           'messaging.rabbitmq.destination.routing_key': e.queue,
           'messaging.message.id': msgProperties.messageId,
           // Note: According to the specification the operation should be called 'deliver' since it triggers a registered callback, but 'deliver' is confusing for receiving a message.
@@ -55,11 +55,12 @@ export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig
       );
     }
     message.properties[MESSAGE_STORED_SPAN] = span;
+    e.action.callback = context.bind(parentContext, e.action.callback);
   };
 }
 
 export async function afterProcessMessageCallback(e: AfterConsumeInfo) {
-  const message = e.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
+  const message = e.action.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
   const span = message.properties[MESSAGE_STORED_SPAN];
 
   if (e.error) {

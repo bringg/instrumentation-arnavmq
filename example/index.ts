@@ -12,7 +12,7 @@ registerInstrumentations({
   instrumentations: [
     new ArnavmqInstrumentation({
       subscribeHook: (span, info) => {
-        const parsedContent = info.content as { request_id: string; foo: string };
+        const parsedContent = info.action.content as { request_id: string; foo: string };
         span.setAttribute('request_id', parsedContent.request_id);
         span.setAttribute('foo', parsedContent.foo);
         console.log(info);

@@ -184,10 +184,14 @@ export interface PublishInfo {
 export interface ConsumeInfo {
   /** The consumed queue */
   queue: string;
-  /** The raw amqplib message */
-  message: amqp.Message;
-  /** The deserialized message content */
-  content: unknown;
+  action: {
+    /** The raw amqplib message */
+    message: amqp.Message;
+    /** The deserialized message content */
+    content: unknown;
+    /** The callback to be executed with the message */
+    callback: Function;
+  };
 }
 
 export type AfterConsumeInfo = ConsumeInfo & {
