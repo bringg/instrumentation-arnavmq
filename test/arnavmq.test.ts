@@ -53,11 +53,11 @@ describe('arnavmq', function () {
       setImmediate(res);
     });
     assertSpanAttributes(testSpans.subscribe[0].span, queue, 'receive', publishOptions, {
-      bodySize: receiveInfo.message.content.byteLength,
+      bodySize: receiveInfo.action.message.content.byteLength,
       name: `${queue} receive`,
     });
 
-    expect(receiveInfo.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
+    expect(receiveInfo.action.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
 
     // Check RPC reply span did not start
     expect(testSpans.rpc).to.be.empty;
@@ -95,10 +95,10 @@ describe('arnavmq', function () {
     const receiveInfo = testSpans.subscribe[0].info;
     assertSpanAttributes(receiveSpan, queue, 'receive', publishOptions, {
       name: `${queue} receive`,
-      bodySize: receiveInfo.message.content.byteLength,
-      correlationId: receiveInfo.message.properties.correlationId,
+      bodySize: receiveInfo.action.message.content.byteLength,
+      correlationId: receiveInfo.action.message.properties.correlationId,
     });
-    expect(receiveInfo.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
+    expect(receiveInfo.action.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
 
     // Check RPC reply span
     expect(testSpans.rpc).to.have.lengthOf(1);
@@ -121,7 +121,7 @@ describe('arnavmq', function () {
     expect(rpcInfo.receiveProperties.correlationId)
       .to.equal(rpcInfo.replyProperties.correlationId)
       .and.equal(publishInfo.properties.correlationId)
-      .and.equal(receiveInfo.message.properties.correlationId);
+      .and.equal(receiveInfo.action.message.properties.correlationId);
   });
 
   it('creates a span for each retry of an rpc consume', async function () {
@@ -163,8 +163,8 @@ describe('arnavmq', function () {
     const successReceive = testSpans.subscribe[testSpans.subscribe.length - 1];
     assertSpanAttributes(successReceive.span, queue, 'receive', publishOptions, {
       name: `${queue} receive`,
-      bodySize: successReceive.info.message.content.byteLength,
-      correlationId: successReceive.info.message.properties.correlationId,
+      bodySize: successReceive.info.action.message.content.byteLength,
+      correlationId: successReceive.info.action.message.properties.correlationId,
     });
 
     const failedReceives = testSpans.subscribe.slice(0, -1);
@@ -172,8 +172,8 @@ describe('arnavmq', function () {
     failedReceives.forEach((failedReceive, i) => {
       assertSpanAttributes(failedReceive.span, queue, 'receive', publishOptions, {
         name: `${queue} receive`,
-        bodySize: failedReceive.info.message.content.byteLength,
-        correlationId: failedReceive.info.message.properties.correlationId,
+        bodySize: failedReceive.info.action.message.content.byteLength,
+        correlationId: failedReceive.info.action.message.properties.correlationId,
         error: `Test reject ${i + 1}`,
       });
     });
@@ -199,6 +199,6 @@ describe('arnavmq', function () {
     expect(rpcInfo.receiveProperties.correlationId)
       .to.equal(rpcInfo.replyProperties.correlationId)
       .and.equal(publishInfo.properties.correlationId)
-      .and.equal(successReceive.info.message.properties.correlationId);
+      .and.equal(successReceive.info.action.message.properties.correlationId);
   });
 });

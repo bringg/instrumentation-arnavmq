@@ -55,12 +55,12 @@ export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig
       );
     }
     message.properties[MESSAGE_STORED_SPAN] = span;
-    e.action.callback = context.bind(parentContext, e.action.callback);
+    e.action.callback = context.bind(trace.setSpan(parentContext, span), e.action.callback);
   };
 }
 
 export async function afterProcessMessageCallback(e: AfterConsumeInfo) {
-  const message = e.action.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
+  const message = e.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
   const span = message.properties[MESSAGE_STORED_SPAN];
 
   if (e.error) {

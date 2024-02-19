@@ -50,7 +50,7 @@ export function getBeforePublishHook(config: ArnavmqInstrumentationConfig, trace
     const parentContext = trace.setSpan(context.active(), parentSpan);
 
     const span = tracer.startSpan(
-      `${exchange} -> ${queue} create (attempt ${e.currentRetry})`,
+      `${exchange} -> ${queue} publish (attempt ${e.currentRetry})`,
       {
         kind: SpanKind.PRODUCER,
         attributes: {

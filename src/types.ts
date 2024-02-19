@@ -194,9 +194,17 @@ export interface ConsumeInfo {
   };
 }
 
-export type AfterConsumeInfo = ConsumeInfo & {
+export type AfterConsumeInfo = {
+  /** The raw amqplib message */
+  message: amqp.Message;
+  /** The deserialized message content */
+  content: unknown;
+
+  /** The error ocurred during the consume callback if available */
   error?: Error;
+  /** An amqplib error in case of a failed message rejection in case of a reject action is made following a callback error */
   rejectError?: Error;
+  /** An amqplib error in case of a failed message ack following a successful callback. */
   ackError?: Error;
 };
 
