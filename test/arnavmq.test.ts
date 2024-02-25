@@ -40,9 +40,10 @@ describe('arnavmq', function () {
     // Check publish span
     expect(testSpans.publish).to.have.lengthOf(1);
     const publishInfo = testSpans.publish[0].info;
-    assertSpanAttributes(testSpans.publish[0].span, queue, 'create', publishOptions, {
+    const publishSpan = testSpans.publish[0].span;
+    assertSpanAttributes(publishSpan, queue, 'publish', publishOptions, {
       bodySize: publishInfo.parsedMessage.byteLength,
-      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} create`,
+      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} publish`,
     });
 
     // Check subscribe span
@@ -55,6 +56,7 @@ describe('arnavmq', function () {
     assertSpanAttributes(testSpans.subscribe[0].span, queue, 'receive', publishOptions, {
       bodySize: receiveInfo.action.message.content.byteLength,
       name: `${queue} receive`,
+      parent: publishSpan.spanContext().spanId,
     });
 
     expect(receiveInfo.action.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
@@ -83,9 +85,10 @@ describe('arnavmq', function () {
     // Check publish span
     expect(testSpans.publish).to.have.lengthOf(1);
     const publishInfo = testSpans.publish[0].info;
-    assertSpanAttributes(testSpans.publish[0].span, queue, 'create', publishOptions, {
+    const publishSpan = testSpans.publish[0].span;
+    assertSpanAttributes(publishSpan, queue, 'publish', publishOptions, {
       bodySize: publishInfo.parsedMessage.byteLength,
-      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} create rpc`,
+      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} publish rpc`,
       correlationId: publishInfo.properties.correlationId,
     });
 
@@ -97,6 +100,7 @@ describe('arnavmq', function () {
       name: `${queue} receive`,
       bodySize: receiveInfo.action.message.content.byteLength,
       correlationId: receiveInfo.action.message.properties.correlationId,
+      parent: publishSpan.spanContext().spanId,
     });
     expect(receiveInfo.action.message.content.byteLength).to.equal(publishInfo.parsedMessage.byteLength);
 
@@ -151,9 +155,10 @@ describe('arnavmq', function () {
     // Check publish span
     expect(testSpans.publish).to.have.lengthOf(1);
     const publishInfo = testSpans.publish[0].info;
-    assertSpanAttributes(testSpans.publish[0].span, queue, 'create', publishOptions, {
+    const publishSpan = testSpans.publish[0].span;
+    assertSpanAttributes(publishSpan, queue, 'publish', publishOptions, {
       bodySize: publishInfo.parsedMessage.byteLength,
-      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} create rpc`,
+      name: `${DEFAULT_EXCHANGE_NAME} -> ${queue} publish rpc`,
       correlationId: publishInfo.properties.correlationId,
     });
 
@@ -165,6 +170,7 @@ describe('arnavmq', function () {
       name: `${queue} receive`,
       bodySize: successReceive.info.action.message.content.byteLength,
       correlationId: successReceive.info.action.message.properties.correlationId,
+      parent: publishSpan.spanContext().spanId,
     });
 
     const failedReceives = testSpans.subscribe.slice(0, -1);
@@ -175,6 +181,7 @@ describe('arnavmq', function () {
         bodySize: failedReceive.info.action.message.content.byteLength,
         correlationId: failedReceive.info.action.message.properties.correlationId,
         error: `Test reject ${i + 1}`,
+        parent: publishSpan.spanContext().spanId,
       });
     });
 

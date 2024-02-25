@@ -1,8 +1,7 @@
 export const CONNECTION_ATTRIBUTES = Symbol('opentelemetry.arnavmq.connection.attributes');
 export const MESSAGE_STORED_SPAN = Symbol('opentelemetry.arnavmq.message.stored-span');
 export const MESSAGE_RPC_REPLY_STORED_SPAN = Symbol('opentelemetry.arnavmq.message.rpc-reply-stored-span');
-export const MESSAGE_PUBLISH_ROOT_SPAN = Symbol('opentelemetry.arnavmq.message.publish-root-span');
-export const MESSAGE_PUBLISH_ATTEMPT_SPAN = Symbol('opentelemetry.arnavmq.message.publish-attempt-span');
+export const MESSAGE_PUBLISH_SPAN = Symbol('opentelemetry.arnavmq.message.publish-stored-span');
 /**
  * Used in the span name instead of the generated destination of the rpc reply queue,
  * since dynamic destinations should not be included in span names.

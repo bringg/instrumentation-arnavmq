@@ -1,72 +1,75 @@
 import { safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
 import { Span, SpanKind, SpanStatusCode, Tracer, context, diag, propagation, trace } from '@opentelemetry/api';
-import { ArnavmqInstrumentationConfig, BeforePublishHook, PublishResultInfo } from '../types';
 import {
-  CONNECTION_ATTRIBUTES,
-  DEFAULT_EXCHANGE_NAME,
-  MESSAGE_PUBLISH_ATTEMPT_SPAN,
-  MESSAGE_PUBLISH_ROOT_SPAN,
-} from '../consts';
+  ArnavmqInstrumentationConfig,
+  BeforePublishHook,
+  InstrumentedConnection,
+  PublishInfo,
+  PublishResultInfo,
+} from '../types';
+import { CONNECTION_ATTRIBUTES, DEFAULT_EXCHANGE_NAME, MESSAGE_PUBLISH_SPAN } from '../consts';
+
+async function getPublishSpan(
+  tracer: Tracer,
+  producer: {
+    connection: InstrumentedConnection;
+  },
+  e: PublishInfo,
+): Promise<Span> {
+  const msgProperties = e.properties as typeof e.properties & {
+    [MESSAGE_PUBLISH_SPAN]: Span;
+  };
+
+  let exchange = DEFAULT_EXCHANGE_NAME;
+  let { queue } = e;
+  if (msgProperties.routingKey) {
+    exchange = e.queue;
+    queue = msgProperties.routingKey;
+  }
+
+  let publishSpan = msgProperties[MESSAGE_PUBLISH_SPAN];
+  if (!publishSpan) {
+    // In case the underlying connection wasn't initialized yet, initialize it (could happen if this is the first time it is accessed)
+    if (!producer.connection[CONNECTION_ATTRIBUTES]) {
+      await producer.connection.getConnection();
+    }
+
+    // The root span.
+    publishSpan = tracer.startSpan(`${exchange} -> ${queue} publish${msgProperties.rpc ? ' rpc' : ''}`, {
+      kind: SpanKind.CLIENT,
+      attributes: {
+        ...producer.connection[CONNECTION_ATTRIBUTES],
+        'messaging.destination.name': exchange,
+        'messaging.rabbitmq.destination.routing_key': queue,
+        'messaging.rabbitmq.message.rpc': !!msgProperties.rpc,
+        'messaging.message.conversation_id': msgProperties.correlationId,
+        'messaging.message.id': msgProperties.messageId,
+        'messaging.operation': 'publish',
+        'messaging.message.body.size': e.parsedMessage.byteLength,
+      },
+    });
+    msgProperties[MESSAGE_PUBLISH_SPAN] = publishSpan;
+  }
+
+  if (e.currentRetry > 0) {
+    publishSpan.setAttribute('messaging.rabbitmq.message.reconnect_retry_number', e.currentRetry);
+    publishSpan.addEvent('producer - publish connection retry starts', {
+      'messaging.rabbitmq.message.reconnect_retry_number': e.currentRetry,
+    });
+  }
+
+  return publishSpan;
+}
 
 export function getBeforePublishHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforePublishHook {
   return async function beforePublish(e) {
-    const msgProperties = e.properties as typeof e.properties & {
-      [MESSAGE_PUBLISH_ATTEMPT_SPAN]: Span;
-      [MESSAGE_PUBLISH_ROOT_SPAN]: Span;
-    };
-
-    let exchange = DEFAULT_EXCHANGE_NAME;
-    let { queue } = e;
-    if (msgProperties.routingKey) {
-      exchange = e.queue;
-      queue = msgProperties.routingKey;
-    }
-
-    let parentSpan = msgProperties[MESSAGE_PUBLISH_ROOT_SPAN];
-    if (!parentSpan) {
-      // In case the underlying connection wasn't initialized yet, initialize it (could happen if this is the first time it is accessed)
-      if (!this.connection[CONNECTION_ATTRIBUTES]) {
-        await this.connection.getConnection();
-      }
-
-      // The root span.
-      parentSpan = tracer.startSpan(`${exchange} -> ${queue} create${msgProperties.rpc ? ' rpc' : ''}`, {
-        kind: SpanKind.CLIENT,
-        attributes: {
-          ...this.connection[CONNECTION_ATTRIBUTES],
-          'messaging.destination.name': exchange,
-          'messaging.rabbitmq.destination.routing_key': queue,
-          'messaging.rabbitmq.message.rpc': !!msgProperties.rpc,
-          'messaging.message.conversation_id': msgProperties.correlationId,
-          'messaging.message.id': msgProperties.messageId,
-          // The entire publish operation is 'create', with each underlying actual message send and potential retries is a separate child 'publish'.
-          'messaging.operation': 'create',
-          'messaging.message.body.size': e.parsedMessage.byteLength,
-        },
-      });
-      msgProperties[MESSAGE_PUBLISH_ROOT_SPAN] = parentSpan;
-    }
-
-    const parentContext = trace.setSpan(context.active(), parentSpan);
-
-    const span = tracer.startSpan(
-      `${exchange} -> ${queue} publish (attempt ${e.currentRetry})`,
-      {
-        kind: SpanKind.PRODUCER,
-        attributes: {
-          'messaging.rabbitmq.message.retry_number': e.currentRetry,
-          'messaging.operation': 'publish',
-        },
-      },
-      parentContext,
-    );
-    msgProperties.headers = msgProperties.headers || {};
-
-    propagation.inject(trace.setSpan(parentContext, span), msgProperties.headers);
+    const publishSpan = await getPublishSpan(tracer, this, e);
+    e.properties.headers = e.properties.headers || {};
+    propagation.inject(trace.setSpan(context.active(), publishSpan), e.properties.headers);
 
     if (config.publishHook) {
       safeExecuteInTheMiddle(
-        () => config.publishHook!(parentSpan, e),
+        () => config.publishHook!(publishSpan, e),
         (err) => {
           if (err) {
             diag.error('arnavmq instrumentation: publishHook error', err);
@@ -75,33 +78,26 @@ export function getBeforePublishHook(config: ArnavmqInstrumentationConfig, trace
         true,
       );
     }
-
-    msgProperties[MESSAGE_PUBLISH_ATTEMPT_SPAN] = span;
   };
 }
 
 export async function afterPublishCallback(e: PublishResultInfo) {
   const msgProperties = e.properties as typeof e.properties & {
-    [MESSAGE_PUBLISH_ATTEMPT_SPAN]: Span;
-    [MESSAGE_PUBLISH_ROOT_SPAN]: Span;
+    [MESSAGE_PUBLISH_SPAN]: Span;
   };
-  const rootSpan = msgProperties[MESSAGE_PUBLISH_ROOT_SPAN];
-  const attemptSpan = msgProperties[MESSAGE_PUBLISH_ATTEMPT_SPAN];
+  const publishSpan = msgProperties[MESSAGE_PUBLISH_SPAN];
 
   if (e.error) {
-    attemptSpan.recordException(e.error);
-    attemptSpan.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: `send attempt failed on retry ${e.currentRetry}: ${e.error.message}`,
-    });
+    publishSpan.recordException(e.error);
 
     if (e.shouldRetry) {
-      attemptSpan.end();
       // Root span will continue on subsequent retries.
       return;
     }
-    rootSpan.setStatus({ code: SpanStatusCode.ERROR, message: `send failed after ${e.currentRetry} attempts` });
+    publishSpan.setStatus({
+      code: SpanStatusCode.ERROR,
+      message: `send failed after ${e.currentRetry} connection retry attempts`,
+    });
   }
-  attemptSpan.end();
-  rootSpan.end();
+  publishSpan.end();
 }
