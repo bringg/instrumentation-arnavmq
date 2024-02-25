@@ -66,9 +66,7 @@ Normally this would mean there should be only a single `publish` span with now `
 All the attributes are on the parent `create` span, with the chile `publish` spans only holding the custom `messaging.rabbitmq.message.retry_number` attribute in addition to the `messaging.operation` attribute.
 
 ```plain
- CREATE (root, producer)
-|---------|
- PUBLISH
+ PUBLISH (root, producer)
 |---------|
             RECEIVE (consumer)
            |---------|
@@ -76,15 +74,15 @@ All the attributes are on the parent `create` span, with the chile `publish` spa
 
 ### On Disconnect, Retry Produce
 
-When configured to retry publication when disconnected from the server, a new `publish` span is created for each individual message send retry.
+When configured to retry publication when disconnected from the server, Will not create a new span, but instead add events for the error and retry start when they occur.
+
+The number of total publish retries until the produce succeeds is added to the sapn on the `messaging.rabbitmq.message.reconnect_retry_number` attribute, with each retry event having it set to the current retry.
 
 ```plain
- CREATE (root, producer)
-|------------------------------------------------|
- PUBLISH    PUBLISH (retry)  PUBLISH (reconnected)
-|---------||---------------||--------------------|
-                                                   RECEIVE (consumer)
-                                                  |---------|
+ PUBLISH (root, producer)
+|----(error, retry event)----(error, retry event)----(reconnected)--|
+                                                                      RECEIVE (consumer)
+                                                                     |---------|
 ```
 
 ### RPC
@@ -94,9 +92,7 @@ On RPC requests, the publish span is not closed until a response is received fro
 A custom `"messaging.rabbitmq.message.rpc": true` attribute is added to the span.
 
 ```plaintext
- CREATE (root, producer)
-|-----------------------------|
- PUBLISH (ends when replied)
+ PUBLISH (root, producer, ends when replied)
 |-----------------------------|
             RECEIVE (consumer)
            |---------|
