@@ -29,11 +29,6 @@ async function getPublishSpan(
 
   let publishSpan = msgProperties[MESSAGE_PUBLISH_SPAN];
   if (!publishSpan) {
-    // In case the underlying connection wasn't initialized yet, initialize it (could happen if this is the first time it is accessed)
-    if (!producer.connection[CONNECTION_ATTRIBUTES]) {
-      await producer.connection.getConnection();
-    }
-
     // The root span.
     publishSpan = tracer.startSpan(`${exchange} -> ${queue} publish${msgProperties.rpc ? ' rpc' : ''}`, {
       kind: SpanKind.CLIENT,
