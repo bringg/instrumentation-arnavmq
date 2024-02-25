@@ -1,9 +1,64 @@
+import { randomUUID } from 'crypto';
 import { Attributes, SpanStatusCode } from '@opentelemetry/api';
 import { TestableSpan } from './setup_test_instrumentation';
 import { ProduceSettings } from '../src/types';
 import { DEFAULT_EXCHANGE_NAME } from '../src/consts';
 
-export default function assertSpanAttributes(
+export async function publishMessage(queue: string, arnavmq: any, rpc: boolean) {
+  let resolveReceivedPromise: (value: unknown) => void;
+  const receivedPromise = new Promise((resolve) => {
+    resolveReceivedPromise = resolve;
+  });
+
+  await arnavmq.subscribe(queue, (msg: string) => {
+    resolveReceivedPromise(msg);
+    return 'result!';
+  });
+
+  const publishOptions: { messageId: string; rpc?: true } = { messageId: randomUUID() };
+  if (rpc) {
+    publishOptions.rpc = true;
+  }
+
+  const response = await arnavmq.publish(queue, 'test message', publishOptions);
+  const received = await receivedPromise;
+
+  expect(received).to.equal('test message');
+  if (rpc) {
+    expect(response).to.equal('result!');
+  }
+
+  return publishOptions;
+}
+
+export async function publishRpcAndRetryTwice(queue: string, arnavmq: any) {
+  let attempt = 0;
+  const expectedAttempts = 3;
+  let resolveReceivedPromise: (value: unknown) => void;
+  const receivedPromise = new Promise((resolve) => {
+    resolveReceivedPromise = resolve;
+  });
+  await arnavmq.subscribe(queue, (msg: string) => {
+    attempt += 1;
+
+    if (attempt === expectedAttempts) {
+      resolveReceivedPromise(msg);
+      return attempt;
+    }
+    throw new Error(`Test reject ${attempt}`);
+  });
+  const publishOptions = { rpc: true, messageId: randomUUID() };
+
+  const response = await arnavmq.publish(queue, 'test message', publishOptions);
+  const received = await receivedPromise;
+
+  expect(response).to.equal(expectedAttempts);
+  expect(received).to.equal('test message');
+
+  return publishOptions;
+}
+
+export function assertSpanAttributes(
   span: TestableSpan,
   queue: string,
   operation: 'create' | 'publish' | 'receive',
