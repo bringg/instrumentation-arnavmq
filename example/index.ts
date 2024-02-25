@@ -11,7 +11,7 @@ provider.register();
 registerInstrumentations({
   instrumentations: [
     new ArnavmqInstrumentation({
-      subscribeHook: (span, info) => {
+      consumeHook: (span, info) => {
         const parsedContent = info.action.content as { request_id: string; foo: string };
         span.setAttribute('request_id', parsedContent.request_id);
         span.setAttribute('foo', parsedContent.foo);
@@ -35,7 +35,7 @@ async function main() {
 
   let requestCounter = 1;
 
-  await arnavmq.subscribe(queue, async (msg: unknown, properties: unknown) => {
+  await arnavmq.consume(queue, async (msg: unknown, properties: unknown) => {
     requestCounter = (requestCounter + 1) % 3;
     if (!requestCounter) {
       console.log('Throwing error on consume!', msg, properties);
@@ -52,7 +52,7 @@ async function main() {
 
   setInterval(async () => {
     try {
-      const res = await arnavmq.publish(queue, getMessage(), {
+      const res = await arnavmq.produce(queue, getMessage(), {
         rpc: !(requestCounter % 2),
         headers: { 'x-request-id': randomUUID() },
       });

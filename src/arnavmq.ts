@@ -12,7 +12,7 @@ import {
   afterPublishCallback,
   afterRpcReplyHook,
   getBeforeProcessMessageHook,
-  getBeforePublishHook,
+  getBeforeProduceHook,
   getBeforeRpcReplyHook,
 } from './instrumentation_hooks';
 
@@ -48,8 +48,8 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
       hooks.consumer.afterProcessMessage(afterProcessMessageHook);
       hooks.consumer.beforeRpcReply(getBeforeRpcReplyHook(this._config, this.tracer));
       hooks.consumer.afterRpcReply(afterRpcReplyHook);
-      hooks.producer.beforePublish(getBeforePublishHook(this._config, this.tracer));
-      hooks.producer.afterPublish(afterPublishCallback);
+      hooks.producer.beforeProduce(getBeforeProduceHook(this._config, this.tracer));
+      hooks.producer.afterProduce(afterPublishCallback);
 
       return arnavmq;
     };

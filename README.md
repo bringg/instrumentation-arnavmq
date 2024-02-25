@@ -34,11 +34,11 @@ registerInstrumentations({
     new ArnavmqInstrumentation(
       // You can add your own custom attributes to the span by registering a hook. Each hook is invoked with the relevant span and info about the operation. See the types for the info properties for each hook.
       {
-        // called from the producer before publishing a message.
-        publishHook: (span, info) => {},
+        // called from the producer before producing a message.
+        produceHook: (span, info) => {},
         // called from the consumer upon receiving a message, before invoking the "consume callback" on the message. The info includes various details about the message.
-        subscribeHook: (span, info) => {},
-        // called from the consumer after finished processing an RPC request, before publishing a reply. Called with info about both the request message and the reply message.
+        consumeHook: (span, info) => {},
+        // called from the consumer after finished processing an RPC request, before producing a reply. Called with info about both the request message and the reply message.
         rpcResponseHook: (span, info) => {},
       },
     ),
@@ -57,7 +57,7 @@ This implementation attempts to follow the OpenTelemetry [Semantic Conventions 1
 
 The created spans and their relations are described as follows, with the span types and hierarchy:
 
-### Regular Publish-Subscribe
+### Regular Produce-Consume
 
 Since normally there is only a single published message, the `create` and `publish` spans will have the exact same length.
 
@@ -74,7 +74,7 @@ All the attributes are on the parent `create` span, with the chile `publish` spa
            |---------|
 ```
 
-### On Disconnect, Retry Publish
+### On Disconnect, Retry Produce
 
 When configured to retry publication when disconnected from the server, a new `publish` span is created for each individual message send retry.
 

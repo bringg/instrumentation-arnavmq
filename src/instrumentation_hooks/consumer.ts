@@ -44,12 +44,12 @@ export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig
       parentContext,
     );
 
-    if (config.subscribeHook) {
+    if (config.consumeHook) {
       safeExecuteInTheMiddle(
-        () => config.subscribeHook!(span, event),
+        () => config.consumeHook!(span, event),
         (err) => {
           if (err) {
-            diag.error('arnavmq instrumentation: subscribeHook error', err);
+            diag.error('arnavmq instrumentation: consumeHook error', err);
           }
         },
         true,

@@ -81,31 +81,14 @@ interface ConsumerHooks {
 }
 
 interface ProducerHooks {
-  beforePublish(callback: MaybeArray<BeforePublishHook>): void;
-  removeBeforePublish(callback: MaybeArray<BeforePublishHook>): void;
+  beforeProduce(callback: MaybeArray<BeforeProduceHook>): void;
+  removeBeforeProduce(callback: MaybeArray<BeforeProduceHook>): void;
 
-  afterPublish(callback: AfterPublishHook): void;
-  removeAfterPublish(callback: AfterPublishHook): void;
+  afterProduce(callback: AfterProduceHook): void;
+  removeAfterProduce(callback: AfterProduceHook): void;
 }
 
 type MaybeArray<T> = T | T[];
-
-export type HooksConfig = {
-  connection?: {
-    beforeConnect?: MaybeArray<BeforeConnectHook>;
-    afterConnect?: MaybeArray<AfterConnectHook>;
-  };
-  consumer?: {
-    beforeProcessMessage?: MaybeArray<BeforeProcessHook>;
-    afterProcessMessage?: MaybeArray<AfterProcessHook>;
-    beforeRpcReply?: MaybeArray<BeforeRpcReplyHook>;
-    afterRpcReply?: MaybeArray<AfterRpcHook>;
-  };
-  producer?: {
-    beforePublish?: MaybeArray<BeforePublishHook>;
-    afterPublish?: MaybeArray<AfterPublishHook>;
-  };
-};
 
 export type ProduceSettings = amqp.MessageProperties & {
   routingKey?: string;
@@ -118,11 +101,11 @@ type BeforeConnectHook = (e: { config: ConnectionConfig }) => Promise<void>;
 
 export type AfterRpcHook = (this: { connection: InstrumentedConnection }, e: RpcResultInfo) => Promise<void>;
 
-export type AfterPublishHook = (
+export type AfterProduceHook = (
   this: {
     connection: InstrumentedConnection;
   },
-  e: PublishResultInfo,
+  e: ProduceResultInfo,
 ) => Promise<void>;
 
 export type BeforeProcessHook = (
@@ -146,11 +129,11 @@ export type BeforeRpcReplyHook = (
   e: RpcInfo,
 ) => Promise<void>;
 
-export type BeforePublishHook = (
+export type BeforeProduceHook = (
   this: {
     connection: InstrumentedConnection;
   },
-  e: PublishInfo,
+  e: ProduceInfo,
 ) => Promise<void>;
 
 export type AfterConnectInfo = {
@@ -165,8 +148,8 @@ export type AfterConnectInfo = {
     }
 );
 
-export interface PublishInfo {
-  /** The queue or exchange to publish to */
+export interface ProduceInfo {
+  /** The queue or exchange to produce to */
   queue: string;
   /** The pre-serialized message to publish */
   message: unknown;
@@ -215,7 +198,7 @@ export interface RpcInfo {
   replyProperties: amqp.MessageProperties;
   /** The queue that the original message was consumed from */
   queue: string;
-  /** The value to send back, before serialization. Returned from the "subscribe" callback. */
+  /** The value to send back, before serialization. Returned from the "consume" callback. */
   reply: unknown;
   /** The serialized reply buffer */
   serializedReply: Buffer;
@@ -234,7 +217,7 @@ export type RpcResultInfo = RpcInfo &
       }
   );
 
-export type PublishResultInfo = PublishInfo &
+export type ProduceResultInfo = ProduceInfo &
   (
     | {
         result: unknown;
@@ -246,8 +229,8 @@ export type PublishResultInfo = PublishInfo &
       }
   );
 
-export interface ArnavmqPublishCustomAttributeFunction {
-  (span: Span, publishInfo: PublishInfo): void;
+export interface ArnavmqProduceCustomAttributeFunction {
+  (span: Span, produceInfo: ProduceInfo): void;
 }
 
 export interface ArnavmqConsumeCustomAttributeFunction {
@@ -255,15 +238,15 @@ export interface ArnavmqConsumeCustomAttributeFunction {
 }
 
 export interface ArnavmqRpcResponseCustomAttributeFunction {
-  (span: Span, publishInfo: RpcInfo): void;
+  (span: Span, produceInfo: RpcInfo): void;
 }
 
 export interface ArnavmqInstrumentationConfig extends InstrumentationConfig {
-  /** hook for adding custom attributes before publish message is sent */
-  publishHook?: ArnavmqPublishCustomAttributeFunction;
+  /** hook for adding custom attributes before a produced message is sent */
+  produceHook?: ArnavmqProduceCustomAttributeFunction;
 
   /** hook for adding custom attributes before consumer message is processed */
-  subscribeHook?: ArnavmqConsumeCustomAttributeFunction;
+  consumeHook?: ArnavmqConsumeCustomAttributeFunction;
 
   /** hook for adding custom attributes before returning RPC message to the producer */
   rpcResponseHook?: ArnavmqRpcResponseCustomAttributeFunction;

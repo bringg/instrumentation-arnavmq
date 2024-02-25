@@ -2,7 +2,7 @@ import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { Attributes, Span, SpanStatus } from '@opentelemetry/api';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import ArnavmqInstrumentation from '../src/arnavmq';
-import { ConsumeInfo, PublishInfo, RpcInfo } from '../src/types';
+import { ConsumeInfo, ProduceInfo, RpcInfo } from '../src/types';
 
 export type TestableSpan = Span & {
   attributes: Attributes;
@@ -14,8 +14,8 @@ export type TestableSpan = Span & {
 };
 
 export type TestSpans = {
-  publish: { span: TestableSpan; info: PublishInfo }[];
-  subscribe: { span: TestableSpan; info: ConsumeInfo }[];
+  produce: { span: TestableSpan; info: ProduceInfo }[];
+  consume: { span: TestableSpan; info: ConsumeInfo }[];
   rpc: { span: TestableSpan; info: RpcInfo }[];
 };
 
@@ -28,7 +28,7 @@ export function resetSpans(context: Mocha.Context) {
 export function getSpans(context: Mocha.Context) {
   let testSpans = spans.get(context.currentTest!.id);
   if (!testSpans) {
-    testSpans = { publish: [], subscribe: [], rpc: [] };
+    testSpans = { produce: [], consume: [], rpc: [] };
     spans.set(context.currentTest!.id, testSpans);
   }
   return testSpans;
@@ -40,11 +40,11 @@ provider.register();
 registerInstrumentations({
   instrumentations: [
     new ArnavmqInstrumentation({
-      subscribeHook: (span, info) => {
-        spans.get(info.queue)!.subscribe.push({ span: span as TestableSpan, info });
+      consumeHook: (span, info) => {
+        spans.get(info.queue)!.consume.push({ span: span as TestableSpan, info });
       },
-      publishHook: (span, info) => {
-        spans.get(info.queue)!.publish.push({ span: span as TestableSpan, info });
+      produceHook: (span, info) => {
+        spans.get(info.queue)!.produce.push({ span: span as TestableSpan, info });
       },
       rpcResponseHook: (span, info) => {
         spans.get(info.queue)!.rpc.push({ span: span as TestableSpan, info });

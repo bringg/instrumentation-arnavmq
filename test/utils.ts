@@ -4,23 +4,23 @@ import { TestableSpan } from './setup_test_instrumentation';
 import { ProduceSettings } from '../src/types';
 import { DEFAULT_EXCHANGE_NAME } from '../src/consts';
 
-export async function publishMessage(queue: string, arnavmq: any, rpc: boolean) {
+export async function produceMessage(queue: string, arnavmq: any, rpc: boolean) {
   let resolveReceivedPromise: (value: unknown) => void;
   const receivedPromise = new Promise((resolve) => {
     resolveReceivedPromise = resolve;
   });
 
-  await arnavmq.subscribe(queue, (msg: string) => {
+  await arnavmq.consume(queue, (msg: string) => {
     resolveReceivedPromise(msg);
     return 'result!';
   });
 
-  const publishOptions: { messageId: string; rpc?: true } = { messageId: randomUUID() };
+  const produceOptions: { messageId: string; rpc?: true } = { messageId: randomUUID() };
   if (rpc) {
-    publishOptions.rpc = true;
+    produceOptions.rpc = true;
   }
 
-  const response = await arnavmq.publish(queue, 'test message', publishOptions);
+  const response = await arnavmq.produce(queue, 'test message', produceOptions);
   const received = await receivedPromise;
 
   expect(received).to.equal('test message');
@@ -28,17 +28,17 @@ export async function publishMessage(queue: string, arnavmq: any, rpc: boolean) 
     expect(response).to.equal('result!');
   }
 
-  return publishOptions;
+  return produceOptions;
 }
 
-export async function publishRpcAndRetryTwice(queue: string, arnavmq: any) {
+export async function produceRpcAndRetryTwice(queue: string, arnavmq: any) {
   let attempt = 0;
   const expectedAttempts = 3;
   let resolveReceivedPromise: (value: unknown) => void;
   const receivedPromise = new Promise((resolve) => {
     resolveReceivedPromise = resolve;
   });
-  await arnavmq.subscribe(queue, (msg: string) => {
+  await arnavmq.consume(queue, (msg: string) => {
     attempt += 1;
 
     if (attempt === expectedAttempts) {
@@ -47,15 +47,15 @@ export async function publishRpcAndRetryTwice(queue: string, arnavmq: any) {
     }
     throw new Error(`Test reject ${attempt}`);
   });
-  const publishOptions = { rpc: true, messageId: randomUUID() };
+  const produceOptions = { rpc: true, messageId: randomUUID() };
 
-  const response = await arnavmq.publish(queue, 'test message', publishOptions);
+  const response = await arnavmq.produce(queue, 'test message', produceOptions);
   const received = await receivedPromise;
 
   expect(response).to.equal(expectedAttempts);
   expect(received).to.equal('test message');
 
-  return publishOptions;
+  return produceOptions;
 }
 
 export function assertSpanAttributes(

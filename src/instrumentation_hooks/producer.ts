@@ -2,10 +2,10 @@ import { safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
 import { Span, SpanKind, SpanStatusCode, Tracer, context, diag, propagation, trace } from '@opentelemetry/api';
 import {
   ArnavmqInstrumentationConfig,
-  BeforePublishHook,
+  BeforeProduceHook,
   InstrumentedConnection,
-  PublishInfo,
-  PublishResultInfo,
+  ProduceInfo,
+  ProduceResultInfo,
 } from '../types';
 import { CONNECTION_ATTRIBUTES, DEFAULT_EXCHANGE_NAME, MESSAGE_PUBLISH_SPAN } from '../consts';
 
@@ -14,7 +14,7 @@ async function getPublishSpan(
   producer: {
     connection: InstrumentedConnection;
   },
-  e: PublishInfo,
+  e: ProduceInfo,
 ): Promise<Span> {
   const msgProperties = e.properties as typeof e.properties & {
     [MESSAGE_PUBLISH_SPAN]: Span;
@@ -56,20 +56,20 @@ async function getPublishSpan(
   return publishSpan;
 }
 
-export function getBeforePublishHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforePublishHook {
-  return async function beforePublish(event: PublishInfo): Promise<void> {
+export function getBeforeProduceHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforeProduceHook {
+  return async function beforeProduce(event: ProduceInfo): Promise<void> {
     const publishSpan = await getPublishSpan(tracer, this, event);
     // We need to specifically assign it on the function parameter headers to add it to the request
     // eslint-disable-next-line no-param-reassign
     event.properties.headers = event.properties.headers || {};
     propagation.inject(trace.setSpan(context.active(), publishSpan), event.properties.headers);
 
-    if (config.publishHook) {
+    if (config.produceHook) {
       safeExecuteInTheMiddle(
-        () => config.publishHook!(publishSpan, event),
+        () => config.produceHook!(publishSpan, event),
         (err) => {
           if (err) {
-            diag.error('arnavmq instrumentation: publishHook error', err);
+            diag.error('arnavmq instrumentation: produceHook error', err);
           }
         },
         true,
@@ -78,7 +78,7 @@ export function getBeforePublishHook(config: ArnavmqInstrumentationConfig, trace
   };
 }
 
-export async function afterPublishCallback(e: PublishResultInfo) {
+export async function afterPublishCallback(e: ProduceResultInfo) {
   const msgProperties = e.properties as typeof e.properties & {
     [MESSAGE_PUBLISH_SPAN]: Span;
   };
