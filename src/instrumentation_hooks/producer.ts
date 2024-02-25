@@ -57,14 +57,16 @@ async function getPublishSpan(
 }
 
 export function getBeforePublishHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforePublishHook {
-  return async function beforePublish(e) {
-    const publishSpan = await getPublishSpan(tracer, this, e);
-    e.properties.headers = e.properties.headers || {};
-    propagation.inject(trace.setSpan(context.active(), publishSpan), e.properties.headers);
+  return async function beforePublish(event: PublishInfo): Promise<void> {
+    const publishSpan = await getPublishSpan(tracer, this, event);
+    // We need to specifically assign it on the function parameter headers to add it to the request
+    // eslint-disable-next-line no-param-reassign
+    event.properties.headers = event.properties.headers || {};
+    propagation.inject(trace.setSpan(context.active(), publishSpan), event.properties.headers);
 
     if (config.publishHook) {
       safeExecuteInTheMiddle(
-        () => config.publishHook!(publishSpan, e),
+        () => config.publishHook!(publishSpan, event),
         (err) => {
           if (err) {
             diag.error('arnavmq instrumentation: publishHook error', err);

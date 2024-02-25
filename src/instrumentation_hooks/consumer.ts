@@ -6,6 +6,7 @@ import {
   ArnavmqInstrumentationConfig,
   BeforeProcessHook,
   BeforeRpcReplyHook,
+  ConsumeInfo,
   InstrumentedConnection,
   RpcResultInfo,
 } from '../types';
@@ -18,22 +19,22 @@ import {
 } from '../consts';
 
 export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforeProcessHook {
-  return async function beforeProcessMessage(e) {
-    const message = e.action.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
+  return async function beforeProcessMessage(event: ConsumeInfo): Promise<void> {
+    const message = event.action.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
     const msgProperties = message.properties;
     const { headers } = msgProperties;
     const parentContext = propagation.extract(context.active(), headers);
 
     const span = tracer.startSpan(
-      `${e.queue} receive`,
+      `${event.queue} receive`,
       {
         kind: SpanKind.CONSUMER,
         attributes: {
           ...this.connection[CONNECTION_ATTRIBUTES],
-          'messaging.destination.name': e.action.message.fields.exchange || DEFAULT_EXCHANGE_NAME,
-          'messaging.rabbitmq.destination.routing_key': e.queue,
+          'messaging.destination.name': event.action.message.fields.exchange || DEFAULT_EXCHANGE_NAME,
+          'messaging.rabbitmq.destination.routing_key': event.queue,
           'messaging.message.id': msgProperties.messageId,
-          // Note: According to the specification the operation should be called 'deliver' since it triggers a registered callback, but 'deliver' is confusing for receiving a message.
+          // NOTE: According to the specification the operation should be called 'deliver' since it triggers a registered callback, but 'deliver' is confusing for receiving a message.
           'messaging.operation': 'receive',
           'messaging.message.conversation_id': msgProperties.correlationId,
           'messaging.message.body.size': message.content.byteLength,
@@ -45,7 +46,7 @@ export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig
 
     if (config.subscribeHook) {
       safeExecuteInTheMiddle(
-        () => config.subscribeHook!(span, e),
+        () => config.subscribeHook!(span, event),
         (err) => {
           if (err) {
             diag.error('arnavmq instrumentation: subscribeHook error', err);
@@ -55,11 +56,13 @@ export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig
       );
     }
     message.properties[MESSAGE_STORED_SPAN] = span;
-    e.action.callback = context.bind(trace.setSpan(parentContext, span), e.action.callback);
+    // We need to specifically assign it on the function parameter callback to add it to wrap it
+    // eslint-disable-next-line no-param-reassign
+    event.action.callback = context.bind(trace.setSpan(parentContext, span), event.action.callback);
   };
 }
 
-export async function afterProcessMessageCallback(e: AfterConsumeInfo) {
+export async function afterProcessMessageHook(e: AfterConsumeInfo) {
   const message = e.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
   const span = message.properties[MESSAGE_STORED_SPAN];
 
@@ -69,21 +72,21 @@ export async function afterProcessMessageCallback(e: AfterConsumeInfo) {
       code: SpanStatusCode.ERROR,
       message: `consumed message processing failed: ${e.error.message}`,
     });
-  }
 
-  if (e.ackError) {
+    // We only `reject` on consume callback error, so there could only be a `rejectError` if there is an `error`
+    if (e.rejectError) {
+      span.recordException(e.rejectError);
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: `consumed message failed to reject after failing to process: ${e.rejectError.message}`,
+      });
+    }
+  } else if (e.ackError) {
+    // We only `ack` if there was no consumer callback error, so there can only be `ackError` if there is no `error`.
     span.recordException(e.ackError);
     span.setStatus({
       code: SpanStatusCode.ERROR,
       message: `consumed message failed ack after processing: ${e.ackError.message}`,
-    });
-  }
-
-  if (e.rejectError) {
-    span.recordException(e.rejectError);
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: `consumed message failed to reject after failing to process: ${e.rejectError.message}`,
     });
   }
 
@@ -137,7 +140,7 @@ export function getBeforeRpcReplyHook(config: ArnavmqInstrumentationConfig, trac
   };
 }
 
-export async function afterRpcReplyCallback(e: RpcResultInfo) {
+export async function afterRpcReplyHook(e: RpcResultInfo) {
   const receiveProperties = e.receiveProperties as amqp.MessageProperties & {
     [MESSAGE_RPC_REPLY_STORED_SPAN]: Span;
   };

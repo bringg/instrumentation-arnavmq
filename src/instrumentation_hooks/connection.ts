@@ -3,7 +3,7 @@ import type * as amqp from 'amqplib';
 import { CONNECTION_ATTRIBUTES, AMQP } from '../consts';
 import { AfterConnectInfo, ConnectionConfig, InstrumentedConnection } from '../types';
 
-function extractPort(url: URL, protocol: string) {
+function extractPort(url: URL, protocol: string): number {
   if (url.port.length) {
     return Number(url.port);
   }
@@ -47,7 +47,7 @@ const getServerPropertiesAttributes = (conn: amqp.Connection['connection']): Att
   return {};
 };
 
-export default async function afterConnectCallback(this: InstrumentedConnection, e: AfterConnectInfo) {
+export default async function afterConnectHook(this: InstrumentedConnection, e: AfterConnectInfo) {
   if (e.error) {
     return;
   }

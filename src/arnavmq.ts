@@ -7,10 +7,10 @@ import {
 import { ArnavmqInstrumentationConfig, ArnavmqModule, ConnectionConfig } from './types';
 import INSTRUMENTATION_ARNAVMQ_VERSION from '../version';
 import {
-  afterConnectCallback,
-  afterProcessMessageCallback,
+  afterConnectHook,
+  afterProcessMessageHook,
   afterPublishCallback,
-  afterRpcReplyCallback,
+  afterRpcReplyHook,
   getBeforeProcessMessageHook,
   getBeforePublishHook,
   getBeforeRpcReplyHook,
@@ -43,11 +43,11 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
     const arnavmqFactory: ArnavmqModule = (config: ConnectionConfig) => {
       const arnavmq = moduleExports(config);
       const { hooks } = arnavmq;
-      hooks.connection.afterConnect(afterConnectCallback);
+      hooks.connection.afterConnect(afterConnectHook);
       hooks.consumer.beforeProcessMessage(getBeforeProcessMessageHook(this._config, this.tracer));
-      hooks.consumer.afterProcessMessage(afterProcessMessageCallback);
+      hooks.consumer.afterProcessMessage(afterProcessMessageHook);
       hooks.consumer.beforeRpcReply(getBeforeRpcReplyHook(this._config, this.tracer));
-      hooks.consumer.afterRpcReply(afterRpcReplyCallback);
+      hooks.consumer.afterRpcReply(afterRpcReplyHook);
       hooks.producer.beforePublish(getBeforePublishHook(this._config, this.tracer));
       hooks.producer.afterPublish(afterPublishCallback);
 
