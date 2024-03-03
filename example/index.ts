@@ -1,39 +1,33 @@
 import './bootstrap_opentelemetry';
 
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { randomUUID } from 'crypto';
 import ArnavmqInstrumentation from '../src/arnavmq';
 
-const provider = new NodeTracerProvider();
-provider.register();
-
 registerInstrumentations({
   instrumentations: [
+    // Register the instrumentation.
+    // Can pass `consumeHook`, `produceHook` and `rpcResponseHook` to add custom attributes to the spans on consume, produce, and rpc reply (produce from the server back to the client).
+    // Each event payload contains it's own relevant data, see the types for details.
     new ArnavmqInstrumentation({
       consumeHook: (span, info) => {
         const parsedContent = info.action.content as { request_id: string; foo: string };
-        span.setAttribute('request_id', parsedContent.request_id);
+        span.setAttribute('request.id', info.action.message.properties.headers['request-id']);
         span.setAttribute('foo', parsedContent.foo);
         console.log(info);
       },
+      // produceHook: (span, info) => {},
+      // rpcResponseHook: (span, info) => {}
     }),
   ],
 });
 
 const arnavmq = require('arnavmq')({ host: 'amqp://localhost' });
 
-function getMessage() {
-  return {
-    foo: 'bar',
-    request_id: randomUUID(),
-  };
-}
-
 async function main() {
   const queue = 'test-queue';
 
-  let requestCounter = 1;
+  let requestCounter = 0;
 
   await arnavmq.consume(queue, async (msg: unknown, properties: unknown) => {
     requestCounter = (requestCounter + 1) % 3;
@@ -51,10 +45,11 @@ async function main() {
   });
 
   setInterval(async () => {
+    const message = { foo: 'bar' };
     try {
-      const res = await arnavmq.produce(queue, getMessage(), {
+      const res = await arnavmq.produce(queue, message, {
         rpc: !(requestCounter % 2),
-        headers: { 'x-request-id': randomUUID() },
+        headers: { 'request-id': randomUUID() },
       });
       console.log(res);
     } catch (error) {

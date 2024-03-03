@@ -1,6 +1,5 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { Attributes, Span, SpanStatus } from '@opentelemetry/api';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import ArnavmqInstrumentation from '../src/arnavmq';
 import { ConsumeInfo, ProduceInfo, RpcInfo } from '../src/types';
 
@@ -33,9 +32,6 @@ export function getSpans(context: Mocha.Context) {
   }
   return testSpans;
 }
-
-const provider = new NodeTracerProvider();
-provider.register();
 
 registerInstrumentations({
   instrumentations: [
