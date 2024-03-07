@@ -1,36 +1,33 @@
 import type * as amqp from 'amqplib';
 import { safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
 import { Span, SpanKind, SpanStatusCode, Tracer, context, diag, propagation, trace } from '@opentelemetry/api';
-import {
-  AfterConsumeInfo,
-  ArnavmqInstrumentationConfig,
-  BeforeProcessHook,
-  BeforeRpcReplyHook,
-  ConsumeInfo,
-  InstrumentedConnection,
-  RpcResultInfo,
-} from '../types';
+import type { ConsumerHooks } from 'arnavmq';
+import { ArnavmqInstrumentationConfig, InstrumentedConnection } from '../types';
 import {
   CONNECTION_ATTRIBUTES,
   DEFAULT_EXCHANGE_NAME,
   MESSAGE_RPC_REPLY_STORED_SPAN,
   MESSAGE_STORED_SPAN,
-  RPC_REPLY_DESTINATION_NAME,
+RPC_REPLY_DESTINATION_NAME,
 } from '../consts';
 
-export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforeProcessHook {
-  return async function beforeProcessMessage(event: ConsumeInfo): Promise<void> {
+export function getBeforeProcessMessageHook(
+  config: ArnavmqInstrumentationConfig,
+  tracer: Tracer,
+): ConsumerHooks.BeforeProcessHook {
+  return async function beforeProcessMessage(event: ConsumerHooks.ConsumeInfo): Promise<void> {
     const message = event.action.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
     const msgProperties = message.properties;
     const { headers } = msgProperties;
     const parentContext = propagation.extract(context.active(), headers);
+    const connectionAttributes = (this.connection as InstrumentedConnection)[CONNECTION_ATTRIBUTES];
 
     const span = tracer.startSpan(
       `${event.queue} receive`,
       {
         kind: SpanKind.CONSUMER,
         attributes: {
-          ...this.connection[CONNECTION_ATTRIBUTES],
+          ...connectionAttributes,
           'messaging.destination.name': event.action.message.fields.exchange || DEFAULT_EXCHANGE_NAME,
           'messaging.rabbitmq.destination.routing_key': event.queue,
           'messaging.message.id': msgProperties.messageId,
@@ -62,7 +59,7 @@ export function getBeforeProcessMessageHook(config: ArnavmqInstrumentationConfig
   };
 }
 
-export async function afterProcessMessageHook(e: AfterConsumeInfo) {
+export async function afterProcessMessageHook(e: ConsumerHooks.AfterConsumeInfo) {
   const message = e.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
   const span = message.properties[MESSAGE_STORED_SPAN];
 
@@ -93,23 +90,25 @@ export async function afterProcessMessageHook(e: AfterConsumeInfo) {
   span.end();
 }
 
-export function getBeforeRpcReplyHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforeRpcReplyHook {
-  return async function beforeRpcReply(this: { connection: InstrumentedConnection }, e) {
+export function getBeforeRpcReplyHook(
+  config: ArnavmqInstrumentationConfig,
+  tracer: Tracer,
+): ConsumerHooks.BeforeRpcReplyHook {
+  return async function beforeRpcReply(e) {
     const receiveProperties = e.receiveProperties as amqp.MessageProperties & {
       [MESSAGE_STORED_SPAN]: Span;
       [MESSAGE_RPC_REPLY_STORED_SPAN]: Span;
     };
 
-    const consumer = this;
-
     const parentSpan = receiveProperties[MESSAGE_STORED_SPAN];
     const parentContext = trace.setSpan(context.active(), parentSpan);
+    const connectionAttributes = (this.connection as InstrumentedConnection)[CONNECTION_ATTRIBUTES];
     const span = tracer.startSpan(
       `${e.queue} -> ${RPC_REPLY_DESTINATION_NAME} publish`,
       {
         kind: SpanKind.PRODUCER,
         attributes: {
-          ...consumer.connection[CONNECTION_ATTRIBUTES],
+          ...connectionAttributes,
           'messaging.rabbitmq.destination.routing_key': receiveProperties.replyTo,
           'messaging.destination.temporary': true,
           'messaging.destination.name': DEFAULT_EXCHANGE_NAME,
@@ -140,7 +139,7 @@ export function getBeforeRpcReplyHook(config: ArnavmqInstrumentationConfig, trac
   };
 }
 
-export async function afterRpcReplyHook(e: RpcResultInfo) {
+export async function afterRpcReplyHook(e: ConsumerHooks.RpcResultInfo) {
   const receiveProperties = e.receiveProperties as amqp.MessageProperties & {
     [MESSAGE_RPC_REPLY_STORED_SPAN]: Span;
   };

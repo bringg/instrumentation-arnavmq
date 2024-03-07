@@ -1,7 +1,8 @@
 import { Attributes } from '@opentelemetry/api';
 import type * as amqp from 'amqplib';
+import type { ConnectionHooks, Connection, ConnectionConfig } from 'arnavmq';
 import { CONNECTION_ATTRIBUTES, AMQP } from '../consts';
-import { AfterConnectInfo, ConnectionConfig, InstrumentedConnection } from '../types';
+import { InstrumentedConnection } from '../types';
 
 function extractPort(url: URL, protocol: string): number {
   if (url.port.length) {
@@ -47,12 +48,13 @@ const getServerPropertiesAttributes = (conn: amqp.Connection['connection']): Att
   return {};
 };
 
-export default async function afterConnectHook(this: InstrumentedConnection, e: AfterConnectInfo) {
+export default async function afterConnectHook(this: Connection, e: ConnectionHooks.AfterConnectInfo) {
   if (e.error) {
     return;
   }
+  const connection = this as InstrumentedConnection;
 
   const optionsAttributes = getConnectionConfigAttributes(e.config);
   const serverPropertiesAttributes = getServerPropertiesAttributes(e.connection.connection);
-  this[CONNECTION_ATTRIBUTES] = { ...optionsAttributes, ...serverPropertiesAttributes };
+  connection[CONNECTION_ATTRIBUTES] = { ...optionsAttributes, ...serverPropertiesAttributes };
 }

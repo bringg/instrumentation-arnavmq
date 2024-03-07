@@ -4,7 +4,8 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 
-import { ArnavmqInstrumentationConfig, ArnavmqModule, ConnectionConfig } from './types';
+import type * as arnavmq from 'arnavmq';
+
 import INSTRUMENTATION_ARNAVMQ_VERSION from '../version';
 import {
   afterConnectHook,
@@ -15,6 +16,7 @@ import {
   getBeforeProduceHook,
   getBeforeRpcReplyHook,
 } from './instrumentation_hooks';
+import { ArnavmqInstrumentationConfig } from './types';
 
 export default class ArnavmqInstrumentation extends InstrumentationBase {
   protected override _config!: ArnavmqInstrumentationConfig;
@@ -28,19 +30,19 @@ export default class ArnavmqInstrumentation extends InstrumentationBase {
 
   protected override init():
     | void
-    | InstrumentationModuleDefinition<ArnavmqModule>
-    | InstrumentationModuleDefinition<ArnavmqModule>[] {
+    | InstrumentationModuleDefinition<arnavmq.ArnavmqFactory>
+    | InstrumentationModuleDefinition<arnavmq.ArnavmqFactory>[] {
     // No unpatching, since we wrap the entire module export and can't unwrap it.
     // Supports version 16.0 and ahead since it relies on the hooks added there.
     return new InstrumentationNodeModuleDefinition('arnavmq', ['>=0.16.0'], this.patchArnavmq.bind(this));
   }
 
-  patchArnavmq(moduleExports: ArnavmqModule) {
+  patchArnavmq(moduleExports: arnavmq.ArnavmqFactory) {
     if (this._patchedModule) {
       return moduleExports;
     }
 
-    const arnavmqFactory: ArnavmqModule = (config: ConnectionConfig) => {
+    const arnavmqFactory: arnavmq.ArnavmqFactory = (config: arnavmq.ConnectionConfig) => {
       const arnavmq = moduleExports(config);
       const { hooks } = arnavmq;
       hooks.connection.afterConnect(afterConnectHook);

@@ -1,21 +1,10 @@
 import { safeExecuteInTheMiddle } from '@opentelemetry/instrumentation';
 import { Span, SpanKind, SpanStatusCode, Tracer, context, diag, propagation, trace } from '@opentelemetry/api';
-import {
-  ArnavmqInstrumentationConfig,
-  BeforeProduceHook,
-  InstrumentedConnection,
-  ProduceInfo,
-  ProduceResultInfo,
-} from '../types';
+import type { Producer, ProducerHooks } from 'arnavmq';
+import { ArnavmqInstrumentationConfig, InstrumentedConnection } from '../types';
 import { CONNECTION_ATTRIBUTES, DEFAULT_EXCHANGE_NAME, MESSAGE_PUBLISH_SPAN } from '../consts';
 
-async function getPublishSpan(
-  tracer: Tracer,
-  producer: {
-    connection: InstrumentedConnection;
-  },
-  e: ProduceInfo,
-): Promise<Span> {
+async function getPublishSpan(tracer: Tracer, producer: Producer, e: ProducerHooks.ProduceInfo): Promise<Span> {
   const msgProperties = e.properties as typeof e.properties & {
     [MESSAGE_PUBLISH_SPAN]: Span;
   };
@@ -29,11 +18,12 @@ async function getPublishSpan(
 
   let publishSpan = msgProperties[MESSAGE_PUBLISH_SPAN];
   if (!publishSpan) {
+    const connectionAttributes = (producer.connection as InstrumentedConnection)[CONNECTION_ATTRIBUTES];
     // The root span.
     publishSpan = tracer.startSpan(`${exchange} -> ${queue} publish${msgProperties.rpc ? ' rpc' : ''}`, {
       kind: SpanKind.CLIENT,
       attributes: {
-        ...producer.connection[CONNECTION_ATTRIBUTES],
+        ...connectionAttributes,
         'messaging.destination.name': exchange,
         'messaging.rabbitmq.destination.routing_key': queue,
         'messaging.rabbitmq.message.rpc': !!msgProperties.rpc,
@@ -56,8 +46,11 @@ async function getPublishSpan(
   return publishSpan;
 }
 
-export function getBeforeProduceHook(config: ArnavmqInstrumentationConfig, tracer: Tracer): BeforeProduceHook {
-  return async function beforeProduce(event: ProduceInfo): Promise<void> {
+export function getBeforeProduceHook(
+  config: ArnavmqInstrumentationConfig,
+  tracer: Tracer,
+): ProducerHooks.BeforeProduceHook {
+  return async function beforeProduce(this: Producer, event: ProducerHooks.ProduceInfo): Promise<void> {
     const publishSpan = await getPublishSpan(tracer, this, event);
     // We need to specifically assign it on the function parameter headers to add it to the request
     // eslint-disable-next-line no-param-reassign
@@ -78,7 +71,7 @@ export function getBeforeProduceHook(config: ArnavmqInstrumentationConfig, trace
   };
 }
 
-export async function afterPublishCallback(e: ProduceResultInfo) {
+export async function afterPublishCallback(e: ProducerHooks.ProduceResultInfo) {
   const msgProperties = e.properties as typeof e.properties & {
     [MESSAGE_PUBLISH_SPAN]: Span;
   };

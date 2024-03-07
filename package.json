@@ -8,7 +8,7 @@
     "lint": "eslint . --ext .ts,.js && prettier -c .",
     "format": "eslint . --ext .ts,.js --fix && prettier --write .",
     "test": "dot-only-hunter test && nyc ts-mocha",
-    "test:docker:run": "docker run -d --name arnavmq-tests -p 5672:5672 rabbitmq:3.8-alpine --network=bridge"
+    "test:docker:run": "docker run -d --rm --name arnavmq-tests -p 5672:5672 rabbitmq:3.13-alpine"
   },
   "author": "Bring",
   "license": "MIT",
