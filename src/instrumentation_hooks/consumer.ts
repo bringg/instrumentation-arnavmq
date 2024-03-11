@@ -8,7 +8,7 @@ import {
   DEFAULT_EXCHANGE_NAME,
   MESSAGE_RPC_REPLY_STORED_SPAN,
   MESSAGE_STORED_SPAN,
-RPC_REPLY_DESTINATION_NAME,
+  RPC_REPLY_DESTINATION_NAME,
 } from '../consts';
 
 export function getBeforeProcessMessageHook(
