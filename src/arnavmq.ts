@@ -6,7 +6,7 @@ import {
 
 import type * as arnavmq from 'arnavmq';
 
-import INSTRUMENTATION_ARNAVMQ_VERSION from '../version';
+import INSTRUMENTATION_ARNAVMQ_VERSION from './version';
 import {
   afterConnectHook,
   afterProcessMessageHook,

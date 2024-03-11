@@ -1,8 +1,8 @@
 {
   "name": "instrumentation-arnavmq",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenTelemetry automatic instrumentation for the `arnavmq` package",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
     "lint": "eslint . --ext .ts,.js && prettier -c .",
@@ -16,7 +16,7 @@
     "node": ">=18"
   },
   "files": [
-    "./dist"
+    "./dist/src"
   ],
   "dependencies": {
     "@opentelemetry/instrumentation": "^0.49.1",
