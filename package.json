@@ -1,6 +1,6 @@
 {
   "name": "instrumentation-arnavmq",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "OpenTelemetry automatic instrumentation for the `arnavmq` package",
   "main": "dist/src/index.js",
   "scripts": {
