@@ -1,7 +1,8 @@
 import { randomUUID } from 'crypto';
 import { Attributes, SpanStatusCode } from '@opentelemetry/api';
+import type * as arnavmq from 'arnavmq';
+
 import { TestableSpan } from './setup_test_instrumentation';
-import { ProduceSettings } from '../src/types';
 import { DEFAULT_EXCHANGE_NAME } from '../src/consts';
 
 export async function produceMessage(queue: string, arnavmq: any, rpc: boolean) {
@@ -62,7 +63,7 @@ export function assertSpanAttributes(
   span: TestableSpan,
   queue: string,
   operation: 'create' | 'publish' | 'receive',
-  messageProperties: Partial<ProduceSettings>,
+  messageProperties: Partial<arnavmq.ProducerHooks.ProduceSettings>,
   options: Partial<{
     name: string;
     parent: string;
