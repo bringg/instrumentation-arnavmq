@@ -12,7 +12,7 @@ registerInstrumentations({
     new ArnavmqInstrumentation({
       consumeHook: (span, info) => {
         const parsedContent = info.action.content as { request_id: string; foo: string };
-        span.setAttribute('request.id', info.action.message.properties.headers['request-id']);
+        span.setAttribute('request.id', info.action.message.properties.headers?.['request-id']);
         span.setAttribute('foo', parsedContent.foo);
         console.log(info);
       },
