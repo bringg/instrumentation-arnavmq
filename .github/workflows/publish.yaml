@@ -1,0 +1,19 @@
+#
+# Build, test and publish the package on release creation.
+#
+name: Publish Package to npmjs
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish to NPM registry
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: ./.github/workflows/ci.yml
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
