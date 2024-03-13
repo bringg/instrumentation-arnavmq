@@ -33,7 +33,7 @@
     "@types/mocha": "^10.0.6",
     "@types/pkginfo": "^0.4.3",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
+    "@typescript-eslint/parser": "^7.2.0",
     "arnavmq": "^0.16.1",
     "chai": "^5.1.0",
     "dot-only-hunter": "^1.0.3",
