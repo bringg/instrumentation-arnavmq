@@ -19,7 +19,7 @@
     "./dist/src"
   ],
   "dependencies": {
-    "@opentelemetry/instrumentation": "^0.49.1",
+    "@opentelemetry/instrumentation": "^0.50.0",
     "pkginfo": "^0.4.1"
   },
   "devDependencies": {
