@@ -14,3 +14,7 @@ updates:
       - yosiat
       - shamil
       - ramhr
+    groups:
+      OpenTelemetry:
+        patterns:
+        - "@opentelemetry/*"
