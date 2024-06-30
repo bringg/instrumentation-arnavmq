@@ -18,20 +18,15 @@ import {
 } from './instrumentation_hooks';
 import { ArnavmqInstrumentationConfig } from './types';
 
-export default class ArnavmqInstrumentation extends InstrumentationBase {
-  protected override _config!: ArnavmqInstrumentationConfig;
-
+export default class ArnavmqInstrumentation extends InstrumentationBase<ArnavmqInstrumentationConfig> {
   private _patchedModule: boolean;
 
   constructor(config?: ArnavmqInstrumentationConfig) {
-    super('instrumentation-arnavmq', INSTRUMENTATION_ARNAVMQ_VERSION, config);
+    super('instrumentation-arnavmq', INSTRUMENTATION_ARNAVMQ_VERSION, config || {});
     this._patchedModule = false;
   }
 
-  protected override init():
-    | void
-    | InstrumentationModuleDefinition<arnavmq.ArnavmqFactory>
-    | InstrumentationModuleDefinition<arnavmq.ArnavmqFactory>[] {
+  protected override init(): void | InstrumentationModuleDefinition | InstrumentationModuleDefinition[] {
     // No unpatching, since we wrap the entire module export and can't unwrap it.
     // Supports version 16.0 and ahead since it relies on the hooks added there.
     return new InstrumentationNodeModuleDefinition('arnavmq', ['>=0.16.0'], this.patchArnavmq.bind(this));

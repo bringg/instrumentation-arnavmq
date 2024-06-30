@@ -57,6 +57,7 @@ export function getBeforeProduceHook(
     event.properties.headers = event.properties.headers || {};
     propagation.inject(trace.setSpan(context.active(), publishSpan), event.properties.headers);
 
+    // TODO: This pattern is now available on the Instrumentation base class as the `_runSpanCustomizationHook`. Can move all it's usages to the instrumentation class to use it.
     if (config.produceHook) {
       safeExecuteInTheMiddle(
         () => config.produceHook!(publishSpan, event),
