@@ -19,12 +19,12 @@
     "./dist/src"
   ],
   "dependencies": {
-    "@opentelemetry/instrumentation": "^0.52.1",
+    "@opentelemetry/instrumentation": "^0.53.0",
     "pkginfo": "^0.4.1"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.52.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.53.0",
     "@opentelemetry/sdk-metrics": "^1.26.0",
     "@opentelemetry/sdk-node": "^0.53.0",
     "@opentelemetry/sdk-trace-node": "^1.26.0",
