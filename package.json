@@ -32,7 +32,7 @@
     "@types/chai": "^4.3.12",
     "@types/mocha": "^10.0.6",
     "@types/pkginfo": "^0.4.3",
-    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.8.1",
     "@typescript-eslint/parser": "^7.3.0",
     "arnavmq": "^0.16.1",
     "chai": "^5.1.0",
