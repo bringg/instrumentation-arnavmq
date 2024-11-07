@@ -29,7 +29,7 @@
     "@opentelemetry/sdk-node": "^0.54.0",
     "@opentelemetry/sdk-trace-node": "^1.26.0",
     "@types/amqplib": "^0.10.5",
-    "@types/chai": "^4.3.12",
+    "@types/chai": "^5.0.1",
     "@types/mocha": "^10.0.6",
     "@types/pkginfo": "^0.4.3",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
