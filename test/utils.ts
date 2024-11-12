@@ -5,13 +5,13 @@ import type * as arnavmq from 'arnavmq';
 import { TestableSpan } from './setup_test_instrumentation';
 import { DEFAULT_EXCHANGE_NAME } from '../src/consts';
 
-export async function produceMessage(queue: string, arnavmq: any, rpc: boolean) {
+export async function produceMessage(queue: string, arnavmq: arnavmq.Arnavmq, rpc: boolean) {
   let resolveReceivedPromise: (value: unknown) => void;
   const receivedPromise = new Promise((resolve) => {
     resolveReceivedPromise = resolve;
   });
 
-  await arnavmq.consume(queue, (msg: string) => {
+  await arnavmq.consume(queue, (msg: unknown) => {
     resolveReceivedPromise(msg);
     return 'result!';
   });
@@ -32,14 +32,14 @@ export async function produceMessage(queue: string, arnavmq: any, rpc: boolean) 
   return produceOptions;
 }
 
-export async function produceRpcAndRetryTwice(queue: string, arnavmq: any) {
+export async function produceRpcAndRetryTwice(queue: string, arnavmq: arnavmq.Arnavmq) {
   let attempt = 0;
   const expectedAttempts = 3;
   let resolveReceivedPromise: (value: unknown) => void;
   const receivedPromise = new Promise((resolve) => {
     resolveReceivedPromise = resolve;
   });
-  await arnavmq.consume(queue, (msg: string) => {
+  await arnavmq.consume(queue, (msg: unknown) => {
     attempt += 1;
 
     if (attempt === expectedAttempts) {

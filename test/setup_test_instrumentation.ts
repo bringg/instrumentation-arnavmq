@@ -1,7 +1,8 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { Attributes, Span, SpanStatus } from '@opentelemetry/api';
 import ArnavmqInstrumentation from '../src/arnavmq';
-import { ConsumeInfo, ProduceInfo, RpcInfo } from '../src/types';
+import { ProduceInfo } from 'arnavmq/types/modules/hooks/producer_hooks';
+import { ConsumeInfo, RpcInfo } from 'arnavmq/types/modules/hooks/consumer_hooks';
 
 export type TestableSpan = Span & {
   attributes: Attributes;
@@ -9,7 +10,7 @@ export type TestableSpan = Span & {
   ended: boolean;
   parentSpanId: string;
   status: SpanStatus;
-  events: any[];
+  events: unknown[];
 };
 
 export type TestSpans = {

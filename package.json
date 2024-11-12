@@ -5,8 +5,8 @@
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint . --ext .ts,.js && prettier -c .",
-    "format": "eslint . --ext .ts,.js --fix && prettier --write .",
+    "lint": "eslint . && prettier -c .",
+    "format": "eslint . --fix && prettier --write .",
     "test": "dot-only-hunter test && nyc ts-mocha",
     "test:docker:run": "docker run -d --rm --name arnavmq-tests -p 5672:5672 rabbitmq:3.13-alpine"
   },
@@ -23,6 +23,8 @@
     "pkginfo": "^0.4.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.14.0",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.54.0",
     "@opentelemetry/sdk-metrics": "^1.26.0",
@@ -32,21 +34,19 @@
     "@types/chai": "^5.0.1",
     "@types/mocha": "^10.0.6",
     "@types/pkginfo": "^0.4.3",
-    "@typescript-eslint/eslint-plugin": "^8.14.0",
-    "@typescript-eslint/parser": "^7.3.0",
     "arnavmq": "^0.16.1",
     "chai": "^5.1.0",
     "dot-only-hunter": "^1.0.3",
-    "eslint": "^8.57.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-import": "^2.29.1",
+    "globals": "^15.12.0",
     "mocha": "^10.3.0",
     "nyc": "^17.0.0",
     "prettier": "^3.2.5",
     "ts-mocha": "^10.0.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "typescript-eslint": "^8.14.0"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0"
