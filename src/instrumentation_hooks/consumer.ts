@@ -121,6 +121,7 @@ export function getBeforeRpcReplyHook(
       parentContext,
     );
 
+    // eslint-disable-next-line no-param-reassign
     e.replyProperties.headers = e.replyProperties.headers || {};
     propagation.inject(parentContext, e.replyProperties.headers);
 
