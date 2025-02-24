@@ -44,7 +44,7 @@
     "mocha": "^10.3.0",
     "nyc": "^17.0.0",
     "prettier": "^3.2.5",
-    "ts-mocha": "^10.0.0",
+    "ts-mocha": "^11.1.0",
     "typescript": "^5.4.2",
     "typescript-eslint": "^8.14.0"
   },
