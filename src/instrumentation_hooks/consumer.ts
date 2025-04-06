@@ -62,6 +62,9 @@ export function getBeforeProcessMessageHook(
 export async function afterProcessMessageHook(e: ConsumerHooks.AfterConsumeInfo) {
   const message = e.message as amqp.Message & { properties: { [MESSAGE_STORED_SPAN]: Span } };
   const span = message.properties[MESSAGE_STORED_SPAN];
+  if (!span) {
+    return;
+  }
 
   if (e.error) {
     span.recordException(e.error);
@@ -101,7 +104,7 @@ export function getBeforeRpcReplyHook(
     };
 
     const parentSpan = receiveProperties[MESSAGE_STORED_SPAN];
-    const parentContext = trace.setSpan(context.active(), parentSpan);
+    const parentContext = parentSpan ? trace.setSpan(context.active(), parentSpan) : context.active();
     const connectionAttributes = (this.connection as InstrumentedConnection)[CONNECTION_ATTRIBUTES];
     const span = tracer.startSpan(
       `${e.queue} -> ${RPC_REPLY_DESTINATION_NAME} publish`,
@@ -145,6 +148,9 @@ export async function afterRpcReplyHook(e: ConsumerHooks.RpcResultInfo) {
     [MESSAGE_RPC_REPLY_STORED_SPAN]: Span;
   };
   const span = receiveProperties[MESSAGE_RPC_REPLY_STORED_SPAN];
+  if (!span) {
+    return;
+  }
 
   if (e.error) {
     span.recordException(e.error);
