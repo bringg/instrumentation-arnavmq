@@ -18,3 +18,8 @@ updates:
       OpenTelemetry:
         patterns:
         - "@opentelemetry/*"
+      Mocha:
+        patterns:
+        - mocha
+        - ts-mocha
+        - "@types/mocha"

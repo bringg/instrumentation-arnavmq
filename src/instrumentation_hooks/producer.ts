@@ -77,6 +77,9 @@ export async function afterPublishCallback(e: ProducerHooks.ProduceResultInfo) {
     [MESSAGE_PUBLISH_SPAN]: Span;
   };
   const publishSpan = msgProperties[MESSAGE_PUBLISH_SPAN];
+  if (!publishSpan) {
+    return;
+  }
 
   if (e.error) {
     publishSpan.recordException(e.error);
