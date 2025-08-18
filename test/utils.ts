@@ -106,7 +106,7 @@ export function assertSpanAttributes(
     expect(span.name).to.equal(options.name);
   }
   if ('parent' in options) {
-    expect(span.parentSpanId).to.equal(options.parent);
+    expect(span.parentSpanContext.spanId).to.equal(options.parent);
   }
   if ('error' in options) {
     expect(span.status.code).to.equal(SpanStatusCode.ERROR);
