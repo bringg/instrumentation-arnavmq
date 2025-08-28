@@ -31,7 +31,7 @@
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/sdk-trace-node": "^2.0.1",
     "@types/amqplib": "0.10.5",
-    "@types/chai": "^5.0.1",
+    "@types/chai": "^5.2.2",
     "@types/mocha": "^10.0.6",
     "@types/pkginfo": "^0.4.3",
     "arnavmq": "^0.16.1",
