@@ -38,7 +38,7 @@ function getConnectionConfigAttributes(config: ConnectionConfig): Attributes {
   return attributes;
 }
 
-const getServerPropertiesAttributes = (conn: amqp.Connection['connection']): Attributes => {
+const getServerPropertiesAttributes = (conn: amqp.ChannelModel['connection']): Attributes => {
   const product = conn.serverProperties.product?.toLowerCase?.();
   if (product) {
     return {
