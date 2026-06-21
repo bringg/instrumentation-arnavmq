@@ -1,7 +1,7 @@
 import { resetSpans, getSpans, TestSpans } from './setup_test_instrumentation';
 import { assertSpanAttributes, produceMessage, produceRpcAndRetryTwice } from './utils';
 import { DEFAULT_EXCHANGE_NAME, RPC_REPLY_DESTINATION_NAME } from '../src/consts';
-import * as amq from 'arnavmq';
+import amq from 'arnavmq';
 
 const arnavmq = amq({ host: 'amqp://localhost' });
 

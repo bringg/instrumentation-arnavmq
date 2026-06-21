@@ -10,7 +10,7 @@ export type TestableSpan = Span & {
   ended: boolean;
   parentSpanContext: SpanContext;
   status: SpanStatus;
-  events: unknown[];
+  events: { attributes: Attributes }[];
 };
 
 export type TestSpans = {

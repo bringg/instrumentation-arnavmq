@@ -1,7 +1,11 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "types": ["node", "mocha", "chai"],
     "typeRoots": ["../node_modules/@types", "./typings"]
   },
+  "include": ["./**/*.ts", "./typings/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
