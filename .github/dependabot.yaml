@@ -9,7 +9,7 @@ updates:
       interval: 'weekly'
     pull-request-branch-name:
       separator: '-'
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     assignees:
       - yosiat
       - shamil
@@ -23,3 +23,8 @@ updates:
         - mocha
         - ts-mocha
         - "@types/mocha"
+      TypeScript:
+        patterns:
+        - typescript
+        - typescript-eslint
+        - "@typescript-eslint/*"

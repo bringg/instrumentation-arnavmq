@@ -1,10 +1,12 @@
 {
   "name": "instrumentation-arnavmq",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "OpenTelemetry automatic instrumentation for the `arnavmq` package",
   "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit && tsc -p test/tsconfig.json --noEmit && tsc -p example/tsconfig.json --noEmit",
     "lint": "eslint . && prettier -c .",
     "format": "eslint . --fix && prettier --write .",
     "test": "dot-only-hunter test && nyc ts-mocha",
@@ -13,40 +15,40 @@
   "author": "Bring",
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "files": [
     "./dist/src"
   ],
   "dependencies": {
-    "@opentelemetry/instrumentation": "^0.213.0",
+    "@opentelemetry/instrumentation": "^0.219.0",
     "pkginfo": "^0.4.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.1.0",
-    "@eslint/js": "^9.14.0",
-    "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.213.0",
-    "@opentelemetry/sdk-metrics": "^2.0.1",
-    "@opentelemetry/sdk-node": "^0.213.0",
-    "@opentelemetry/sdk-trace-node": "^2.0.1",
-    "@types/amqplib": "0.10.8",
-    "@types/chai": "^5.2.2",
-    "@types/mocha": "^10.0.6",
-    "@types/pkginfo": "^0.4.3",
-    "arnavmq": "^0.17.0",
-    "chai": "^6.0.1",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
+    "@opentelemetry/sdk-metrics": "^2.8.0",
+    "@opentelemetry/sdk-node": "^0.219.0",
+    "@opentelemetry/sdk-trace-node": "^2.8.0",
+    "@types/amqplib": "^0.10.8",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.0.0",
+    "@types/pkginfo": "^0.4.4",
+    "arnavmq": "^0.17.2",
+    "chai": "^6.2.2",
     "dot-only-hunter": "^1.0.3",
-    "eslint": "^9.14.0",
-    "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-import": "^2.29.1",
-    "globals": "^17.0.0",
-    "mocha": "^10.3.0",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "mocha": "^11.7.6",
     "nyc": "^18.0.0",
-    "prettier": "^3.2.5",
+    "prettier": "^3.8.4",
     "ts-mocha": "^11.1.0",
-    "typescript": "^5.4.2",
-    "typescript-eslint": "^8.14.0"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0"
