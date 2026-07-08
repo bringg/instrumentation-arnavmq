@@ -11,9 +11,9 @@ updates:
       separator: '-'
     open-pull-requests-limit: 5
     assignees:
-      - yosiat
       - shamil
       - ramhr
+      - ormelaver-cyber
     groups:
       OpenTelemetry:
         patterns:
