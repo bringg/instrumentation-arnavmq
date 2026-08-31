@@ -1,6 +1,6 @@
 {
   "name": "instrumentation-arnavmq",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "OpenTelemetry automatic instrumentation for the `arnavmq` package",
   "main": "dist/src/index.js",
   "scripts": {
@@ -47,7 +47,8 @@
     "nyc": "^18.0.0",
     "prettier": "^3.8.4",
     "ts-mocha": "^11.1.0",
-    "typescript": "^6.0.3",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.61.1"
   },
   "peerDependencies": {
