@@ -37,7 +37,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^26.1.1",
     "@types/pkginfo": "^0.4.4",
-    "arnavmq": "^0.17.2",
+    "arnavmq": "^0.18.1",
     "chai": "^6.2.2",
     "dot-only-hunter": "^1.0.3",
     "eslint": "^10.5.0",
